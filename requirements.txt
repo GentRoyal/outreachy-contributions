@@ -1,0 +1,21 @@
+# Core libraries
+numpy
+pandas
+matplotlib
+seaborn
+
+# Machine Learning
+scikit-learn
+xgboost
+imbalanced-learn
+
+# Chemistry-related libraries
+pubchempy
+# RDKit should be installed via conda, not pip
+# Install it separately using: conda install -c conda-forge rdkit
+
+# Bioinformatics and Drug Discovery
+PyTDC  # Install as 'pip install PyTDC'
+ersilia  # Install as 'pip install ersilia'
+
+# Note: If installation fails with pip, try using conda, and vice versa.
