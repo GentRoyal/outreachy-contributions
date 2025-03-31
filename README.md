@@ -17,6 +17,7 @@ I must say that this wasn't the project I selected initially, I selected [DrugRe
 | **Metric** | pIC50 (no unit) |
 
 There were 22 missing values in the `Drug_ID` column and I filled the missing values by combining the pubchempy and rdkit libraries. I started by extracting the molecule formula from the SMILES. This was then used to find the chemical formula and by extension, the drug name.
+
 All through the project, I use a logger to log the process and the following is an extract
 ```bash
 2025-03-26 09:32:58,292 - INFO - Processing 19 rows with missing Drug_IDs in ../data/hERG/train.csv...
@@ -152,13 +153,15 @@ The [Cardiotoxicity Classifier](https://github.com/ersilia-os/eos1pu1) featurise
 - Classification is based on the chemical data such as SMILES representations of compounds
 After Featurising the dataset, I got a Featurised dataset with `key` , `input` , `Probability` and `Prediction` as the columns. This does not really give me numerical features for me to work with.
 
+I gave [Cardiotoxicity Classifier](https://github.com/ersilia-os/eos1pu1) a second look and I found that it's actually not a featuriser but a classification model that predicts if a drug is toxic or not.
+
 Then I checked [DrugTax: Drug taxonomy](https://github.com/ersilia-os/eos24ci) which takes SMILES inputs and classifies the molecules according to their taxonomy (organic or inorganic), but this doesn't really have a direct relation with hERG blocking This Featuriser is easy to uses and it also uses a binary classification. 
 In the end I got a vector of 163 features including the taxonomy classification.
-Lastly, I checked the [ErG 2D Descriptors](https://github.com/ersilia-os/eos24ci) featuriser.
-Because hERG blocking depends on molecular shape, functional groups, and pharmacophore properties, I will explore this featuriser too because it focuses on bioactivity, and it also captures pharmacophoric properties
+
+Lastly, I checked the [ErG 2D Descriptors](https://github.com/ersilia-os/eos5guo) featuriser.
+This featuriser focuses on bioactivity, and it also captures pharmacophoric properties, size and shape of molecules. Since, we're dealing with a drug dataset, I think it's an ideal alternative to check.
 
 ```bash
-2025-03-27 08:38:55,245 - INFO - Loading Ersilia model: eos5guo
 Performing Featurisation...
 2025-03-27 08:39:00,647 - INFO - Featurization completed in 5.40s for ../data/hERG/train.csv
 2025-03-27 08:39:00,649 - INFO - Loading Ersilia model: eos5guo
@@ -178,8 +181,9 @@ So, there are four train sets in total (the original train set and the three sam
 
 ### Further Preprocessing  
 - Dropped 31 single-valued columns from the ERG 2D featurized set.  
+- Dropped 123 single-valued columns from the DrugTax featurized set.  
 - Scaled train, validation, and test features with `StandardScaler`.  
-- Applied listed sampling techniques.
+- Applied the above sampling techniques to address class imbalance.
   
 ### Model Configurations
 - No class weighting, no stratified K-Fold, no grid search.  
@@ -216,12 +220,12 @@ Below is the best model summary for each featurized dataset.
 | F1-Score       | 92.18%  | 85.00%       | 87.56%  |
 | ROC AUC        | 97.85%  | 87.29%       | 78.46%  |
 
-
 After training, I created a [correlation heatmap](url) to analyze feature relationships, a [precision-recall curve](url) to evaluate performance on imbalanced data, an ROC-AUC curve to assess [classification quality](url), and a top 10 feature importance visual to highlight key predictors.
 
 **For ERG 2D featurized Dataset**
 - The ERG 2D Featurised Dataset showed improvement over the DrugTax featurizer.
 - The model still generalized poorly especially with a decrement from train to validation metrics
+- This dataset produced the best metric (table below)
 
 | Metric          | Train  | Validation   | Test    |
 |----------------|---------|--------------|---------|
@@ -230,7 +234,6 @@ After training, I created a [correlation heatmap](url) to analyze feature relati
 | Recall         | 98.74%  | 95.24%       | 99.02%  |
 | F1-Score       | 89.97%  | 83.33%       | 86.32%  |
 | ROC AUC        | 95.40%  | 79.57%       | 82.24%  |
-
 
 The parameters of the GridSearchCV of the best model above are:  
 
@@ -242,5 +245,12 @@ The parameters of the GridSearchCV of the best model above are:
 | min_samples_split | 10 |
 | n_estimators    | 300 |
 | random_state    | 42 |
+| model | RandomForestClassifier |
 
-Similarly, I created a [correlation heatmap](url) to analyze feature relationships, a [precision-recall curve](url) to evaluate performance on imbalanced data, an ROC-AUC curve to assess [classification quality](url), and a top 10 feature importance visual to highlight key predictors.
+Similarly, I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20RandomForest%20-%20eos5guo.png) 
+which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers). 
+But in this case, we need to correctly classify more negative classes (non blockers), so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20RandomForest%20-%20eos5guo.png) to assess classification quality.
+The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20RandomForest%20-%20eos5guo.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png) shows our model is 82.24% confident in its classification but we cannot overlook the metrics from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20RandomForest%20-%20eos5guo.png).
+The 18.42% specificity means the model really struggle to classify negative class (No Blockage) and the 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly.
+So, we need to find a way to improve the model's specificity.
+I also included a top 10 feature importance visual to highlight key predictors.
