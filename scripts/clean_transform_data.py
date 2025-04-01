@@ -1,6 +1,4 @@
-import os
 import logging
-import json
 import time
 import pubchempy as pcp
 from rdkit import Chem
@@ -14,8 +12,6 @@ class DataProcessor:
     def __init__(self, input_csv, output_csv):
         self.input_csv = input_csv
         self.output_csv = output_csv
-        self.log_dir = os.path.abspath(log_dir)
-        os.makedirs(self.log_dir, exist_ok=True)
 
     def process_csv(self):
         """

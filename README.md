@@ -26,16 +26,16 @@ All through the project, I use a logger to log the process and the following is 
 ```
 
 ### Label Distribution
-I looked at the distribution of labels and I found that the dataset contains a highly imbalanced distribution of labels, with more hERG blockers than non-blockers. 
+I looked at the distribution of labels and I found that the dataset contains a highly imbalanced distribution of labels, with more hERG blockers (451) than non-blockers (204). 
 We need to understand this imbalance because it is important before training and evaluating our model.
-The label distribution can be found [here](path/to/label_distribution.png).
+The label distribution can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/label_distribution.png)
 
 ### SMILES Length Distribution
-Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](path/to/smiles_length_distribution.png), where we see that Most molecules have SMILES lengths between 30 and 80 characters.
+Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/smiles_length.png), where we see that Most molecules have SMILES lengths between 30 and 80 characters.
 
 ### Sample Drug Structures
 To better understand the dataset, I visualized some molecular structures of drugs in the dataset. This visualization can help in analyzing the chemical properties of hERG blockers and non-blockers.
-The sample drug structures can be found [here](path/to/sample_drug_structures.png)
+The sample drug structures can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/sample_molecules.png)
 
 ### Repository Ogranization
 ```bash
@@ -263,10 +263,10 @@ The parameters of the GridSearchCV of the best model above are:
 | random_state    | 42 |
 | model | RandomForestClassifier |
 
-I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20ERG%202D%20Featurized%20Dataset.png)
+I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png)
 which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers). 
-But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
-The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png).
-The 18.42% specificity means the model really struggle to classify negative class (No Blockage) and the 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly.
+But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
+The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png).
+The 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly which is quite good but the 18.42% specificity means the model really struggle to classify negative class (No Blockage), which is very low.
 So, we need to find a way to improve the model's specificity.
 I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Top%2010%20Feature%20Importances%3A%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
