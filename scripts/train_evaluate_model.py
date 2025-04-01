@@ -110,7 +110,7 @@ class DatasetProcessor:
             target (str): The column name of the target variable. Default is 'Y'.
         
         Returns:
-            tuple: Scaled feature matrices and target variables for train, test, and validation sets.
+            Arrays: Scaled feature matrices and target variables for train, test, and validation sets.
         """
         logger.info("Scaling feature sets...")
         X_train, y_train = train.drop(columns=[target]), train[target]    
@@ -257,40 +257,18 @@ class Modelling:
     
         rf.fit(X_train, y_train)
         
-        def compute_metrics(y_true, y_pred, y_proba, dataset_name):
-            """
-            Compute classification metrics and log results.
-            """
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            accuracy = (tp + tn) / (tp + tn + fp + fn)
-            precision = tp / (tp + fp) if (tp + fp) != 0 else 0
-            recall = tp / (tp + fn) if (tp + fn) != 0 else 0
-            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
-            roc_auc = roc_auc_score(y_true, y_proba)
-
-            logger.info(f"{self.dataset_name} Metrics: Accuracy={accuracy:.4f}, Precision={precision:.4f}, Recall={recall:.4f}, F1 Score={f1_score:.4f}, ROC AUC={roc_auc:.4f}")
-
-            return {
-                "confusion_matrix": (tn, fp, fn, tp),
-                "accuracy": accuracy,
-                "precision": precision,
-                "recall": recall,
-                "f1_score": f1_score,
-                "roc_auc": roc_auc
-            }
-    
         # Compute metrics
         y_train_pred = rf.predict(X_train)
         y_train_proba = rf.predict_proba(X_train)[:, 1]
-        train_metrics = compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
+        train_metrics = self.compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
     
         y_val_pred = rf.predict(X_val)
         y_val_proba = rf.predict_proba(X_val)[:, 1]
-        val_metrics = compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
+        val_metrics = self.compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
     
         y_test_pred = rf.predict(X_test)
         y_test_proba = rf.predict_proba(X_test)[:, 1]
-        test_metrics = compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
+        test_metrics = self.compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
         
         # Precision-Recall curve
         precision_curve, recall_curve, _ = precision_recall_curve(y_test, y_test_proba)
@@ -379,39 +357,17 @@ class Modelling:
         
         xgb.fit(X_train, y_train)
         
-        def compute_metrics(y_true, y_pred, y_proba, dataset_name):
-            """
-            Compute classification metrics and log results.
-            """
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            accuracy = (tp + tn) / (tp + tn + fp + fn)
-            precision = tp / (tp + fp) if (tp + fp) != 0 else 0
-            recall = tp / (tp + fn) if (tp + fn) != 0 else 0
-            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
-            roc_auc = roc_auc_score(y_true, y_proba)
-    
-            logger.info(f"{self.dataset_name} Metrics: Accuracy={accuracy:.4f}, Precision={precision:.4f}, Recall={recall:.4f}, F1 Score={f1_score:.4f}, ROC AUC={roc_auc:.4f}")
-            
-            return {
-                "confusion_matrix": (tn, fp, fn, tp),
-                "accuracy": accuracy,
-                "precision": precision,
-                "recall": recall,
-                "f1_score": f1_score,
-                "roc_auc": roc_auc
-            }
-    
         y_train_pred = xgb.predict(X_train)
         y_train_proba = xgb.predict_proba(X_train)[:, 1]
-        train_metrics = compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
+        train_metrics = self.compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
     
         y_val_pred = xgb.predict(X_val)
         y_val_proba = xgb.predict_proba(X_val)[:, 1]
-        val_metrics = compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
+        val_metrics = self.compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
     
         y_test_pred = xgb.predict(X_test)
         y_test_proba = xgb.predict_proba(X_test)[:, 1]
-        test_metrics = compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
+        test_metrics = self.compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
         
         precision_curve, recall_curve, _ = precision_recall_curve(y_test, y_test_proba)
         
@@ -431,39 +387,67 @@ class Modelling:
         }
 
     def evaluate_model(self, model_results):
+        """
+        Evaluate multiple models and select the one with the highest ROC-AUC score.
+        
+        Parameters:
+        model_results (dict): A dictionary where keys are model names and values are dictionaries
+                              containing test metrics, including 'roc_auc'.
+        
+        Returns:
+        tuple: The best model and its corresponding results based on the highest ROC-AUC score.
+        """
         best_roc_auc = 0
         model = None
         results = None
         for model, results in model_results.items():
-            roc_score = results['test_metrics']['roc_auc']
+            roc_score = results['test_metrics']['roc_auc'] if self.dataset_name == 'hERG' else results['metrics']['roc_auc']
             
             if roc_score > best_roc_auc:
                 best_roc_auc = roc_score
                 best_model = model
                 best_results = results
-
+        
+        logger.info(f"Best Model: {best_model}, Best ROC-AUC Score: {best_roc_auc}")
         return model, best_results
 
 
     def visualize_model(self, model, model_results, graph_title, y_test):
-        save_path = f"../data/figures/{self.dataset_name}/"
+        """
+        Visualizes the performance of a given model using various metrics and plots.
 
-        train_metric = model_results['train_metrics']
-        val_metric = model_results['val_metrics']
-        test_metric = model_results['test_metrics']
+        Parameters:
+        - model: The trained machine learning model.
+        - model_results (dict): Dictionary containing training, validation, and test metrics.
+        - graph_title (str): Title for the plots.
+        - y_test (array-like): True labels for the test set.
+
+        Generates:
+        - ROC Curve
+        - Precision-Recall Curve
+        - Confusion Matrix
+        - Feature Importance (if applicable)
+        - Prints tabular performance metrics
+        """
+        save_path = f"../data/figures/{self.dataset_name}/"
+        
+        train_metric = model_results['train_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
+        val_metric = model_results['val_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
+        test_metric = model_results['test_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
 
         best_roc_auc = test_metric['roc_auc']
-            
         
-        print("Best Model:", model)
-        print("Best ROC-Score:", best_roc_auc)
+        logger.info(f"Best Model: {model}")
+        logger.info(f"Best ROC-AUC Score: {best_roc_auc:.4f}")
 
         df = pd.DataFrame({'Train': train_metric, 'Validation': val_metric, 'Test': test_metric})
+        #df.drop(columns = ['confusion_matrix'], inplace = True)
 
         # Print in tabular format
         print(tabulate.tabulate(df, headers='keys', tablefmt='grid'))
-        
-        fpr, tpr, _ = roc_curve(y_test, model_results["y_test_proba"])
+
+        #print(, len(model_results["y_test_proba"]))
+        fpr, tpr, _ = roc_curve(y_test, model_results["y_test_proba"]) if self.dataset_name == 'hERG' else  roc_curve(y_test, model_results["y_test_proba"][:len(y_test)])
         
         plt.figure(figsize=(6, 4))
         plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {best_roc_auc:.4f})")
@@ -473,9 +457,11 @@ class Modelling:
         plt.title(f"ROC Curve: {graph_title}")
         plt.legend()
         plt.grid(True)
-        plt.savefig(os.path.join(save_path, f"ROC Curve- {graph_title}.png"))
+        roc_curve_path = os.path.join(save_path, f"ROC Curve - {graph_title}.png")
+        plt.savefig(roc_curve_path)
         plt.show()
-        
+        logger.info(f"ROC Curve saved at {roc_curve_path}")
+
         precision_curve = model_results["precision_curve"]
         recall_curve = model_results["recall_curve"]
         
@@ -486,15 +472,19 @@ class Modelling:
         plt.title(f"Precision-Recall Curve: {graph_title}.png")
         plt.legend()
         plt.grid(True)
-        plt.savefig(os.path.join(save_path, f"Precision-Recall Curve- {graph_title}.png"))
+        pr_curve_path = os.path.join(save_path, f"Precision-Recall Curve - {graph_title}.png")
+        plt.savefig(pr_curve_path)
         plt.show()
+        logger.info(f"Precision-Recall Curve saved at {pr_curve_path}")
         
-        y_test_pred = model_results["y_test_pred"]
-        cm = confusion_matrix(y_test, y_test_pred)
+        y_test_pred = model_results["y_test_pred"] if self.dataset_name == 'hERG' else model_results["y_test_pred"][:len(y_test)]
+        cm = confusion_matrix(y_test, y_test_pred) 
         TN, FP, FN, TP = cm.ravel()
     
         specificity = TN / (TN + FP)
         npv = TN / (TN + FN) 
+        
+        logger.info(f"Specificity: {specificity:.4f}, Negative Predictive Value: {npv:.4f}")
         
         plt.figure(figsize=(6, 4))
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=["No Blockage", "Blockage"], yticklabels=["No Blockage", "Blockage"])
@@ -502,10 +492,10 @@ class Modelling:
         plt.ylabel("True Label")
         plt.title(f"Confusion Matrix: {graph_title}\nSpecificity: {specificity:.2%}, NPV: {npv:.2%}")
         plt.grid(True)
-        # Save the figure
-        plt.savefig(os.path.join(save_path, f"Confusion Matrix: {graph_title}"))
+        cm_path = os.path.join(save_path, f"Confusion Matrix - {graph_title}.png")
+        plt.savefig(cm_path)
         plt.show()
-    
+        logger.info(f"Confusion Matrix saved at {cm_path}")
     
         if hasattr(model, "feature_importances_"):
             feature_importances = model.feature_importances_
@@ -522,10 +512,26 @@ class Modelling:
             plt.title(f"Top 10 Feature Importances: {graph_title}")
             plt.xticks(rotation = 45)
             plt.grid(True)
-            plt.savefig(os.path.join(save_path, f"Top 10 Feature Importances: {graph_title}"))
+            feature_importance_path = os.path.join(save_path, f"Top 10 Feature Importances - {graph_title}.png")
+            plt.savefig(feature_importance_path)
             plt.show()
+            logger.info(f"Top 10 Feature Importances saved at {feature_importance_path}")
+            logger.info(f"Top 10 Feature Importances: {list(zip(top_features, top_importances))}")
 
     def model_config(self, X_train, y_train, X_train_over, y_train_over, X_train_smote, y_train_smote, X_train_hybrid, y_train_hybrid):
+        """
+        Prepares different training datasets and model configurations for experimentation.
+
+        Parameters:
+        - X_train, y_train: Original training dataset.
+        - X_train_over, y_train_over: Oversampled training dataset.
+        - X_train_smote, y_train_smote: SMOTE-generated training dataset.
+        - X_train_hybrid, y_train_hybrid: Hybrid resampled training dataset.
+
+        Returns:
+        - train_sets (dict): A dictionary containing different training datasets.
+        - configs (list): A list of model configuration dictionaries.
+        """
         train_sets = {
             "Original Set": (X_train, y_train),
             "Oversampled": (X_train_over, y_train_over),
@@ -541,29 +547,26 @@ class Modelling:
             {"class_weight": False, "use_stratified_kfold": True, "use_gridsearch": False},
             {"class_weight": False, "use_stratified_kfold": False, "use_gridsearch": True},
             ]
+        
+        logger.info(f"Prepared {len(train_sets)} training sets: {list(train_sets.keys())}")
+        logger.info(f"Generated {len(configs)} model configurations.")
     
         return train_sets, configs
-
-    def apply_trained_model(self, model, X_train, y_train, X_test, y_test, X_val, y_val):
-        def compute_metrics(y_true, y_pred, y_proba, dataset_name):
-            tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-            accuracy = (tp + tn) / (tp + tn + fp + fn)
-            precision = tp / (tp + fp) if (tp + fp) != 0 else 0
-            recall = tp / (tp + fn) if (tp + fn) != 0 else 0
-            f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
-            roc_auc = roc_auc_score(y_true, y_proba)
-    
-            # Print results inside the function
-            print("=" * 50)
-            print(f"{self.dataset_name} Metrics:")
-            print(f"Accuracy: {accuracy:.4f}")
-            print(f"Precision: {precision:.4f}")
-            print(f"Recall: {recall:.4f}")
-            print(f"F1 Score: {f1_score:.4f}")
-            print(f"ROC AUC: {roc_auc:.4f}")
-            print("=" * 50)
-    
-            return {
+        
+    def compute_metrics(self, y_true, y_pred, y_proba, dataset_name):
+        """
+        Compute classification metrics and log results.
+        """
+        tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+        accuracy = (tp + tn) / (tp + tn + fp + fn)
+        precision = tp / (tp + fp) if (tp + fp) != 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) != 0 else 0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
+        roc_auc = roc_auc_score(y_true, y_proba)
+        
+        logger.info(f"{self.dataset_name} Metrics: Accuracy={accuracy:.4f}, Precision={precision:.4f}, Recall={recall:.4f}, F1 Score={f1_score:.4f}, ROC AUC={roc_auc:.4f}")
+        
+        return {
                 "confusion_matrix": (tn, fp, fn, tp),
                 "accuracy": accuracy,
                 "precision": precision,
@@ -572,32 +575,43 @@ class Modelling:
                 "roc_auc": roc_auc
             }
     
-        # Compute metrics
-        y_train_pred = model.predict(X_train)
-        y_train_proba = model.predict_proba(X_train)[:, 1]
-        train_metrics = compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
+    def apply_trained_model(self, model, X, y):
+        """
+        Applies a trained model to training, validation, and test datasets, 
+        computes performance metrics, and returns predictions and probabilities.
+
+        Parameters:
+        - model: Trained model to be evaluated.
+        - X, y: New dataset.
     
-        y_val_pred = model.predict(X_val)
-        y_val_proba = model.predict_proba(X_val)[:, 1]
-        val_metrics = compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
-    
-        y_test_pred = model.predict(X_test)
-        y_test_proba = model.predict_proba(X_test)[:, 1]
-        test_metrics = compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
+        Returns:
+        - model: The trained model.
+        - results (dict): A dictionary containing:
+            - Performance metrics for train, validation, and test sets.
+            - Predicted values and probabilities for each set.
+            - Precision-recall curve values.
+        """
+        logger.info("Applying the trained model to datasets...")
         
-        # Precision-Recall curve
-        precision_curve, recall_curve, _ = precision_recall_curve(y_test, y_test_proba)
+        y_pred = model.predict(X)
+        y_proba = model.predict_proba(X)[:, 1]
+        metrics = self.compute_metrics(y, y_pred, y_proba, "Train")
+    
+        precision_curve, recall_curve, _ = precision_recall_curve(y, y_proba)
+        
+        logger.info("Model evaluation completed.")
+        logger.info(f"Train ROC-AUC: {metrics['roc_auc']:.4f}")
+        logger.info(f"Validation ROC-AUC: {metrics['roc_auc']:.4f}")
+        logger.info(f"Test ROC-AUC: {metrics['roc_auc']:.4f}")
     
         return model, {
-            "train_metrics": train_metrics,
-            "val_metrics": val_metrics,
-            "test_metrics": test_metrics,
-            "y_train_pred": y_train_pred,
-            "y_train_proba": y_train_proba,
-            "y_val_pred": y_val_pred,
-            "y_val_proba": y_val_proba,
-            "y_test_pred": y_test_pred,
-            "y_test_proba": y_test_proba,
+            "metrics": metrics,
+            "y_pred": y_pred,
+            "y_proba": y_proba,
+            "y_val_pred": y_pred,
+            "y_val_proba": y_proba,
+            "y_test_pred": y_pred,
+            "y_test_proba": y_proba,
             "precision_curve" : precision_curve, 
             "recall_curve" : recall_curve
         }

@@ -25,6 +25,18 @@ All through the project, I use a logger to log the process and the following is 
 ...
 ```
 
+### Label Distribution
+I looked at the distribution of labels and I found that the dataset contains a highly imbalanced distribution of labels, with more hERG blockers than non-blockers. 
+We need to understand this imbalance because it is important before training and evaluating our model.
+The label distribution can be found [here](path/to/label_distribution.png).
+
+### SMILES Length Distribution
+Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](path/to/smiles_length_distribution.png), where we see that Most molecules have SMILES lengths between 30 and 80 characters.
+
+### Sample Drug Structures
+To better understand the dataset, I visualized some molecular structures of drugs in the dataset. This visualization can help in analyzing the chemical properties of hERG blockers and non-blockers.
+The sample drug structures can be found [here](path/to/sample_drug_structures.png)
+
 ### Repository Ogranization
 ```bash
 .
@@ -140,7 +152,11 @@ Done!
 2025-03-24 22:52:03,698 - INFO - Test set saved (Shape: (132, 3))
 ```
 - It is worth noting that the dataset was splitted using scaffold method of split. This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our moddel on new data instead of a random split.
-- Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}
+- Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
+
+
+
+
 
 ## Task 2: Featurisation
 The choice of Featuriser for this project are based on two criterions
@@ -204,6 +220,8 @@ So, there are four train sets in total (the original train set and the three sam
 | **Recall**  | Proportion of actual positives correctly predicted |  
 | **F1-Score**  | Harmonic mean of precision and recall |
 | **ROC-AUC**  | Measures the ability to distinguish between classes |  
+| **Specificity**  | Proportion of actual negatives correctly predicted (True Negative Rate) |  
+| **Negative Predictive Value**  | Proportion of true negatives among predicted negatives |  
 
 ### Training and Evaluating The Model
 Below is the best model summary for each featurized dataset.
@@ -219,8 +237,6 @@ Below is the best model summary for each featurized dataset.
 | Recall         | 95.93%  | 80.95%       | 93.14%  |
 | F1-Score       | 92.18%  | 85.00%       | 87.56%  |
 | ROC AUC        | 97.85%  | 87.29%       | 78.46%  |
-
-After training, I created a [correlation heatmap](url) to analyze feature relationships, a [precision-recall curve](url) to evaluate performance on imbalanced data, an ROC-AUC curve to assess [classification quality](url), and a top 10 feature importance visual to highlight key predictors.
 
 **For ERG 2D featurized Dataset**
 - The ERG 2D Featurised Dataset showed improvement over the DrugTax featurizer.
@@ -247,10 +263,10 @@ The parameters of the GridSearchCV of the best model above are:
 | random_state    | 42 |
 | model | RandomForestClassifier |
 
-Similarly, I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20RandomForest%20-%20eos5guo.png) 
+I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20ERG%202D%20Featurized%20Dataset.png)
 which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers). 
-But in this case, we need to correctly classify more negative classes (non blockers), so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20RandomForest%20-%20eos5guo.png) to assess classification quality.
-The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20RandomForest%20-%20eos5guo.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png) shows our model is 82.24% confident in its classification but we cannot overlook the metrics from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve-%20RandomForest%20-%20eos5guo.png).
+But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
+The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%3A%20RandomForest%20-%20eos5guo.png).
 The 18.42% specificity means the model really struggle to classify negative class (No Blockage) and the 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly.
 So, we need to find a way to improve the model's specificity.
-I also included a top 10 feature importance visual to highlight key predictors.
+I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Top%2010%20Feature%20Importances%3A%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.

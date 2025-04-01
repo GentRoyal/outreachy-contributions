@@ -93,6 +93,7 @@ with open('../models/herg_model.pkl', "rb") as f:
 best_roc_auc = 0
 best_model = None
 results = None
+
 for model, results in all_model_results.items():
     roc_score = results['test_metrics']['roc_auc']
     
@@ -111,11 +112,11 @@ if name != 'hERG':
     
     for train_set_name, (X_train_set, y_train_set) in train_sets.items():
         print(train_set_name)
-        model, model_result = modelling.apply_trained_model(best_model, X_train_set, y_train_set, X_test, y_test, X_val, y_val)
+        model, model_result = modelling.apply_trained_model(best_model, X_train_set, y_train_set)
         model_results[model] = model_result
     
     best_model, best_results = modelling.evaluate_model(model_results)
-
+    
 modelling.visualize_model(best_model, best_results, graph_title = "ERG 2D Featurized Dataset", y_test = y_test)
 
 
