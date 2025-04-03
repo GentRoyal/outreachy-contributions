@@ -179,10 +179,18 @@ The train set is imbalanced (314 class 1 and 144 class 0), I addressed it by app
 - SMOTE
 - Hybrid sampler (SMOTE-EEN) 
 
-So, there are four train sets in total (the original train set and the three sampled train sets)
+So, there are [four train sets](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/train_sets.png) in total (the original train set and the three sampled train sets)
+The imblearn.oversampler and SMOTE distribution appear to be the same but their methods of Oversampling are different
+The distributions of the original set and the hybrid set also appear to be the same but they have different shape and are not identical
+```bash
+print(np.array_equal(X_train, X_train_hybrid))  -> False 
+print(np.array_equal(y_train, y_train_hybrid))  -> False 
+print("Original shape:", X_train.shape) -> Original shape: (404, 1024)
+print("Hybrid shape:", X_train_hybrid.shape) -> Hybrid shape: (492, 1024)
+```
 
 ### Further Preprocessing  
-- Dropped 31 single-valued columns from the featurized sets.  
+- Dropped single-valued columns from the featurized sets.  
 - Scaled train, validation, and test features with `StandardScaler`.  
 - Applied the above sampling techniques to address class imbalance.
   
