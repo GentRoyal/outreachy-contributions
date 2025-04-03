@@ -198,13 +198,13 @@ So, there are four train sets in total (the original train set and the three sam
 
 ### Evaluation Metrics
 
-| **Metric**  | **Description**  |  **Formula**|
-|------------|----------------|  
-| **Accuracy** | Proportion of correctly classified instances |
-| **F1-Score**  | Harmonic mean of precision and recall |
-| **ROC-AUC**  | Measures the ability to distinguish between classes |  
-| **Specificity**  | Proportion of actual negatives correctly predicted (True Negative Rate) |  
-| **Negative Predictive Value**  | Proportion of true negatives among predicted negatives |  
+| **Metric**  | **Description**  | **Formula** |
+|------------|----------------|------------|
+| **Accuracy** | Proportion of correctly classified instances | (TP + TN) / (TP + TN + FP + FN) |
+| **F1-Score**  | Harmonic mean of precision and recall | 2 * (Precision * Recall) / (Precision + Recall) |
+| **ROC-AUC**  | Measures the ability to distinguish between classes | Area under the Receiver Operating Characteristic (ROC) curve |
+| **Specificity**  | Proportion of actual negatives correctly predicted (True Negative Rate) | TN / (TN + FP) |
+| **Negative Predictive Value**  | Proportion of true negatives among predicted negatives | TN / (TN + FN) |
 
 ### Training and Evaluating The Model
 **For DrugTax featurized Dataset**
