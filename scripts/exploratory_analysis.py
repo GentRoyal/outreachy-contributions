@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 class ExploratoryDataAnalysis:
     def __init__(self, dataset_name, data_dir = "../data/", figure_base_dir = "../data/figures/"):
         self.dataset_name = dataset_name
-        self.data_path = os.path.join(data_dir, dataset_name, f"{dataset_name}.csv")
-        self.figure_dir = os.path.join(figure_base_dir, dataset_name)  # Ensuring model-specific directory
+        self.data_path = os.path.join(data_dir, f"{dataset_name}.csv")
+        self.figure_dir = figure_base_dir
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -43,22 +43,18 @@ class ExploratoryDataAnalysis:
             if "Y" in df.columns:
                 counts = dict(df.Y.value_counts()).items()
                 for key, value in counts:
-                    if self.dataset_name == 'hERG':
-                        classification = "blockers" if key == 1.0 else "non-blockers"
-                    else:
-                        classification = "mutagens" if key == 1.0 else "non-mutagens"
+                    classification = "blockers" if key == 1.0 else "non-blockers"
                     self.logger.info(f"{value} drugs are classified as {classification}")
 
-                
                 plt.figure(figsize=(10, 5))
-                sns.barplot(x=df.Y.value_counts().index, y=df.Y.value_counts().values)
+                sns.barplot(x = df.Y.value_counts().index.astype(str), y = df.Y.value_counts().values)
                 plt.xlabel("Labels")
                 plt.ylabel("Count")
                 plt.title("Label Distribution")
-                plt.show()
 
                 fig_path = os.path.join(self.figure_dir, "label_distribution.png")
                 plt.savefig(fig_path)
+                plt.show()
                 self.logger.info(f"Saved figure to: {os.path.abspath(fig_path)}")
                 plt.close()
             else:
@@ -70,10 +66,10 @@ class ExploratoryDataAnalysis:
                 smiles_length = df['Drug'].str.len()
                 sns.histplot(smiles_length, bins=20, kde=True)
                 plt.title("SMILES Length Distribution")
-                plt.show()
 
                 fig_path = os.path.join(self.figure_dir, "smiles_length.png")
                 plt.savefig(fig_path)
+                plt.show()
                 self.logger.info(f"Saved figure to: {os.path.abspath(fig_path)}")
                 plt.close()
             else:

@@ -5,7 +5,7 @@ This repository contain all the codes, dataset, scripts and figures used for the
 Specifically, I will be focus on creating a model that predicts whether a drug blocks the human ether-à-go-go related gene (hERG). The project is a **classification problem** and according to the project's dataset, each drug is represented by a drug id, a SMILES string and labeled as either blocking (1) or not blocking (0). The dataset includes 648 drugs and can be found under the [Toxicity Prediction Task](https://tdcommons.ai/single_pred_tasks/tox) in [TDCommons](https://tdcommons.ai/)
 
 ### Why this Project?
-I must say that this wasn't the project I selected initially, I selected [DrugResponse - GDSC1](https://tdcommons.ai/multi_pred_tasks/drugres) but was informed it might get complicated especially when it gets to the featuriser stage and was advised to make a switch. So, I decided to carefully go through [TDCommons](https://tdcommons.ai/) again and I found hERG Blockers project under [Toxicity Prediction Task](https://tdcommons.ai/single_pred_tasks/tox). I am working on CareWomb, an AI/ML app that monitors maternal and fetal health, including heartbeats, to support safer pregnancies in remote areas. While the hERG blocker project and my CareWomb project are not directly related, I think there might be possiblities of conencting the two. The hERG blocker project is predicting whether drugs can block the hERG, and since the [hERG contributes to the electric activity of the heart](https://en.wikipedia.org/wiki/HERG#:~:text=This%20ion%20channel%20(sometimes%20simply%20denoted%20as%20%27hERG%27)%20is%20best%20known%20for%20its%20contribution%20to%20the%20electrical%20activity%20of%20the%20heart) and CareWomb tracks heatbeats, I think I can explore this possibility of linking the two projects and see where it leads.
+I must say that this wasn't the project I selected initially, I selected [DrugResponse - GDSC1](https://tdcommons.ai/multi_pred_tasks/drugres) but was informed it might get complicated especially when it gets to the featuriser stage and was advised to make a switch. So, I decided to carefully go through [TDCommons](https://tdcommons.ai/) again and I found hERG Blockers project under [Toxicity Prediction Task](https://tdcommons.ai/single_pred_tasks/tox). I am working on CareWomb, an AI/ML app that monitors maternal and fetal health, including heartbeats, to support safer pregnancies in remote areas. While the hERG blocker project and my CareWomb project are not directly related, I think there might be possiblities of conencting the two. The hERG blocker project is predicting whether drugs can block the hERG, and since the [hERG contributes to the electric activity of the heart](https://en.wikipedia.org/wiki#:~:text=This%20ion%20channel%20(sometimes%20simply%20denoted%20as%20%27hERG%27)%20is%20best%20known%20for%20its%20contribution%20to%20the%20electrical%20activity%20of%20the%20heart) and CareWomb tracks heatbeats, I think I can explore this possibility of linking the two projects and see where it leads.
 
 ## Task 1: Downloading the Dataset
 ### Characteristics
@@ -20,7 +20,7 @@ There were 22 missing values in the `Drug_ID` column and I filled the missing va
 
 All through the project, I use a logger to log the process and the following is an extract
 ```bash
-2025-03-26 09:32:58,292 - INFO - Processing 19 rows with missing Drug_IDs in ../data/hERG/train.csv...
+2025-03-26 09:32:58,292 - INFO - Processing 19 rows with missing Drug_IDs in ../data/train.csv...
 2025-03-26 09:33:33,810 - INFO - Processed: {'SMILES': 'NC(=O)C[C@@H](N)c1nn[nH]n1', 'Formula': 'C4H8N6O', 'Name': 'MELAMINE FORMALDEHYDE', 'Drug_ID': 'MELAMINE FORMALDEHYDE'}
 ...
 ```
@@ -28,38 +28,41 @@ All through the project, I use a logger to log the process and the following is 
 ### Label Distribution
 I looked at the distribution of labels and I found that the dataset contains a highly imbalanced distribution of labels, with more hERG blockers (451) than non-blockers (204). 
 We need to understand this imbalance because it is important before training and evaluating our model.
-The label distribution can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/label_distribution.png)
+The label distribution can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/label_distribution.png)
 
 ### SMILES Length Distribution
-Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/smiles_length.png), where we see that Most molecules have SMILES lengths between 30 and 80 characters.
+Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/smiles_length.png), where we see that Most molecules have SMILES lengths between 30 and 80 characters.
 
 ### Sample Drug Structures
 To better understand the dataset, I visualized some molecular structures of drugs in the dataset. This visualization can help in analyzing the chemical properties of hERG blockers and non-blockers.
-The sample drug structures can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/sample_molecules.png)
+The sample drug structures can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/sample_molecules.png)
 
 ### Repository Ogranization
 ```bash
 .
 ├── data/               # Raw and processed dataset files
 │   └── figures/        # Figures from EDA
-│   └── hERG/           # hERG-specific data
-│       ├── hERG.csv
-│       ├── herg.tab
-│       ├── test.csv
-│       ├── train.csv
-│       ├── validation.csv
-│       ├── test_eos24ci_Featurised.csv
-│       ├── train_eos24ci_Featurised.csv
-│       └── validation_eos24ci_Featurised.csv
-├── models/             # Saved machine learning model checkpoints
+├── hERG.csv
+├── hERG.tab
+├── test.csv
+├── train.csv
+├── validation.csv
+├── train_{featurizer_code}_featurised.csv
+├── validation_{featurizer_code}_featurised.csv
+├── test_{featurizer_code}_featurised.csv
+├
+├── models/             # Saved machine learning models (pickle file)
+├── best_eos2gw4_model.pkl 
+├── best_eos5guo_model.pkl 
 ├── notebooks/          # Jupyter notebooks for analysis
 │   └── TDC - Toxicity Prediction Task.ipynb
 ├── scripts/            # Python utility scripts
 │   ├── main.py
-│   ├── data_loader.py
-│   ├── data_processor.py
-│   ├── explore.py
-│   └── Featurise.py
+│   ├── load_dataset.py
+│   ├── clean_transform_data.py
+│   ├── exploratory_analysis.py
+│   ├── feature_engineering.py
+│   ├── train_evaluate_model.py
 ├── requirements.txt    # Project dependencies
 └── README.md           # Project documentation
 ```
@@ -108,26 +111,19 @@ cd outreachy-contribution
 ```
 
 #### How to Run
-##### Method 1: Automation Script
+**Method 1: Automation Script**
 ```bash
 cd scripts
 python main.py
 ```
-- You'll be prompted to enter a model name. Enter `hERG`
-- You'll also be prompted whether you want to the existing dataset or download a new one. `Y` means that the existing preprocessed and Featurised data will be used and `N` means you're replacing the existing data with a new one and as such the prepeocessing, EDA and Featuriser steps will be performed.
+- Follow Prompt to interact
 - Note: For WSL users experiencing Matplotlib crashes, set Qt platform:
 ```bash
 echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc
 source ~/.bashrc
 ```
-Expected actions and results are as follows:
-- This will automatically run `data_loader.py`, `data_processor`, `explore.py` and `Featurise.py` scripts
-- Load and download the dataset
-- Split the dataset into train, test and split
-- Perform Exploratory Data Analysis (display dataset summary and generate visualization stored in `data\figures\hERG`)
-- Featurise the dataset.
 
-##### Method 2: Jupyter Notebook
+**Method 2: Jupyter Notebook**
 1. Launch Jupyter Lab
    ```bash
    jupyter lab
@@ -144,32 +140,22 @@ Downloading...
 100%|██████████████████| 50.2k/50.2k [00:00<00:00, 241kiB/s]
 Loading...
 Done!
-2025-03-24 22:52:03,325 - INFO - Dataset 'hERG' saved to /home/gentroyal/outreachy-temp/data/hERG/hERG.csv (Shape: (655, 3))
+2025-03-24 22:52:03,325 - INFO - Dataset 'hERG' saved to /home/gentroyal/outreachy-temp/data.csv (Shape: (655, 3))
 2025-03-24 22:52:03,326 - INFO - Splitting dataset using 'scaffold' method...
 100%|███████████████████| 655/655 [00:00<00:00, 1854.63it/s]
 2025-03-24 22:52:03,695 - INFO - Train set saved (Shape: (458, 3))
 2025-03-24 22:52:03,696 - INFO - Validation set saved (Shape: (65, 3))
 2025-03-24 22:52:03,698 - INFO - Test set saved (Shape: (132, 3))
 ```
-- It is worth noting that the dataset was splitted using scaffold method of split. This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our moddel on new data instead of a random split.
+- It is worth noting that the dataset was splitted using scaffold method of split. This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our model on new data instead of a random split.
 - Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
-
-
-
-
 
 ## Task 2: Featurisation
 The choice of Featuriser for this project are based on two criterions
 1. The Featuriser should be related to toxicity because it directly address the main goal of the project
 2. The Featuriser be related to drugs as this would be related to the dataset.
 
-The [Cardiotoxicity Classifier](https://github.com/ersilia-os/eos1pu1) featuriser which was my first go to featuriser, is directly related to toxicity which is very important for predicting hERG Blocker. It used SMILES representations of compounds which is present in our dataset and it captures the structure of a drug and its biological impact.
-**Features**
-- Uses biological data including gene expression and cellular paintings after drug interactions
-- Classification is based on the chemical data such as SMILES representations of compounds
-After Featurising the dataset, I got a Featurised dataset with `key` , `input` , `Probability` and `Prediction` as the columns. This does not really give me numerical features for me to work with.
-
-I gave [Cardiotoxicity Classifier](https://github.com/ersilia-os/eos1pu1) a second look and I found that it's actually not a featuriser but a classification model that predicts if a drug is toxic or not.
+I started by checking the [Cardiotoxicity Classifier](https://github.com/ersilia-os/eos1pu1) but I later found out it's actually not a featuriser but a classification model that predicts if a drug is toxic or not.
 
 Then I checked [DrugTax: Drug taxonomy](https://github.com/ersilia-os/eos24ci) which takes SMILES inputs and classifies the molecules according to their taxonomy (organic or inorganic), but this doesn't really have a direct relation with hERG blocking This Featuriser is easy to uses and it also uses a binary classification. 
 In the end I got a vector of 163 features including the taxonomy classification.
@@ -179,11 +165,11 @@ This featuriser focuses on bioactivity, and it also captures pharmacophoric prop
 
 ```bash
 Performing Featurisation...
-2025-03-27 08:39:00,647 - INFO - Featurization completed in 5.40s for ../data/hERG/train.csv
+2025-03-27 08:39:00,647 - INFO - Featurization completed in 5.40s for ../data/train.csv
 2025-03-27 08:39:00,649 - INFO - Loading Ersilia model: eos5guo
-2025-03-27 08:39:15,387 - INFO - Featurization completed in 14.74s for ../data/hERG/test.csv
+2025-03-27 08:39:15,387 - INFO - Featurization completed in 14.74s for ../data/test.csv
 2025-03-27 08:39:15,388 - INFO - Loading Ersilia model: eos5guo
-2025-03-27 08:39:33,235 - INFO - Featurization completed in 17.85s for ../data/hERG/validation.csv
+2025-03-27 08:39:33,235 - INFO - Featurization completed in 17.85s for ../data/validation.csv
 ```
 
 ## Task 3: Build an ML Model
@@ -196,8 +182,7 @@ The train set is imbalanced (314 class 1 and 144 class 0), I addressed it by app
 So, there are four train sets in total (the original train set and the three sampled train sets)
 
 ### Further Preprocessing  
-- Dropped 31 single-valued columns from the ERG 2D featurized set.  
-- Dropped 123 single-valued columns from the DrugTax featurized set.  
+- Dropped 31 single-valued columns from the featurized sets.  
 - Scaled train, validation, and test features with `StandardScaler`.  
 - Applied the above sampling techniques to address class imbalance.
   
@@ -213,18 +198,15 @@ So, there are four train sets in total (the original train set and the three sam
 
 ### Evaluation Metrics
 
-| **Metric**  | **Description**  |  
+| **Metric**  | **Description**  |  **Formula**|
 |------------|----------------|  
 | **Accuracy** | Proportion of correctly classified instances |
-| **Precision**  | Proportion of true positives among predicted positives |  
-| **Recall**  | Proportion of actual positives correctly predicted |  
 | **F1-Score**  | Harmonic mean of precision and recall |
 | **ROC-AUC**  | Measures the ability to distinguish between classes |  
 | **Specificity**  | Proportion of actual negatives correctly predicted (True Negative Rate) |  
 | **Negative Predictive Value**  | Proportion of true negatives among predicted negatives |  
 
 ### Training and Evaluating The Model
-Below is the best model summary for each featurized dataset.
 **For DrugTax featurized Dataset**
 - After removing the single valued columns, the dataset of a total of 163 features remained just 40 features.
 - Both algorithms performed poorly on the sampled and unsampled variations of this dataset.
@@ -241,7 +223,6 @@ Below is the best model summary for each featurized dataset.
 **For ERG 2D featurized Dataset**
 - The ERG 2D Featurised Dataset showed improvement over the DrugTax featurizer.
 - The model still generalized poorly especially with a decrement from train to validation metrics
-- This dataset produced the best metric (table below)
 
 | Metric          | Train  | Validation   | Test    |
 |----------------|---------|--------------|---------|
@@ -251,22 +232,58 @@ Below is the best model summary for each featurized dataset.
 | F1-Score       | 89.97%  | 83.33%       | 86.32%  |
 | ROC AUC        | 95.40%  | 79.57%       | 82.24%  |
 
-The parameters of the GridSearchCV of the best model above are:  
-
-| Parameter       | Value   |
-|---------------|----------|
-| max_depth  | 5     |
-| max_features      | sqrt |
-| min_samples_leaf      | 1 |
-| min_samples_split | 10 |
-| n_estimators    | 300 |
-| random_state    | 42 |
-| model | RandomForestClassifier |
-
-I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png)
+I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png)
 which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers). 
-But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
-The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png).
+But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
+The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png).
 The 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly which is quite good but the 18.42% specificity means the model really struggle to classify negative class (No Blockage), which is very low.
+The 18.42% means that the remaining 81.58% were drugs that can block the hERG were misclassified as non-blockers. This percentage is too high; I would say it is unacceptable and it is too risky to deploy such model even though the ROC-AUC curve shows that the model is 82.24% confident in its prediction.
 So, we need to find a way to improve the model's specificity.
-I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/hERG/Top%2010%20Feature%20Importances%20-%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
+I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
+I need to point at this point that the featuriser does not return descriptive names as the column names except for a few, so it's difficult to say what each feature represents.
+If we can get the descriptive feature names, the feature importance visual would be more interpretable.
+
+### Comparison with other Featuriser
+Another featuriser I tried is the Ersilia Compound Embeddings. According to the description of this featuriser, it generates bioactivity-aware chemical embeddings, combining physicochemical and bioactivity information; So I thought of giving it a try.
+At first, I got this as the best metric 
+The metrics of the model are as follows:
+| Metric          | Train  | Validation   | Test    |
+|----------------|---------|--------------|---------|
+| Accuracy       | 100.0%        | 77.61%            | 76.43%             |
+| Precision        | 100.0%              | 84.62%            | 85.57%             |
+| Recall           | 100.0%              | 78.57%            | 81.37%             |
+| F1_Score        | 100.0%              | 81.48%           | 83.42%             |
+| ROC_AUC         | 100.0%              | 82.67%            | 82.56%             |
+
+The model clearly overfits the train set because of its perfect rating on the train set but overall, the model generalize moderately well and it struggles with unseen data.
+Similarly, I the same figures I created for the ErG 2D model; a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png), a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) and a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
+
+To decide which model is better, I used a trade-off of which poses more risk "misclassifying a drug as hERG blocker or misclassifying a drug as not" i.e. False Positive vs False Negative
+
+**False Negative (misclassifying a hERG blocker as not a blocker)**
+To the best of my knowledge, this is more dangerous. A drug that is a hERG blocker could cause serious heart issues, and misclassifying it as not can cause serious health issues.
+
+**False Positive (misclassifying a non-hERG blocker as a blocker)**
+This is a serious error too but I think the error is less risky. The worse that could happen here could be delaying the approval of the drug before it is considered safe, but it doesn’t pose a direct health risk.
+
+Now using this as a benchmark, I can now compare the two models:
+ErG 2D Description model has high NPV (87.50%), meaning that the model gets 87.50% of the no blockage classifications correctly which is quite good, but it has low specificity (18.42%), meaning that the model only gets 18.42% of actual non-hERG blockers. 
+
+The Ersilia Compound Embeddings model on the other hand has lower NPV (55.81%) but higher specificity (63.16%), meaning it's better at correctly identifying drugs that are not blockers compared.
+
+Using my trade-off, I would give priority to minimizing the risk of missing a dangerous hERG blocker, so I’d choose the Ersilia Compound Embeddings model. Even though its NPV is lower, its higher specificity makes it better at avoiding the false negative that could lead to serious health risks.
+
+I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms of the ROC_AUC.
+| Metric          | Train  | Validation   | Test    |
+|------------------|------------------|--------------------|--------------------|
+| Accuracy         | 97.96%              | 82.14%            | 74.62%             |
+| Precision        | 97.21%              | 81.81%            | 73.58%             |
+| Recall           | 98.74%              | 97.05%            | 92.85%             |
+| F1_Score        | 97.97%              | 88.79%           | 82.11%             |
+| ROC_AUC         | 99.82%              | 78.36%            | 89.43%             |
+
+But this came at a price, the [specificity](link) reduced to 44.00% and the NPV increased to 78.57%
+
+### Conclusion
+In terms of NPV/Specificity trade-off, the first ErG 2D model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
+In terms of ROC-AUC, the second ErG 2D model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)

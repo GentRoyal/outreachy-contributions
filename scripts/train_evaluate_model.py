@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import tabulate
+import pickle as pkl
 
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE, RandomOverSampler
@@ -17,14 +18,27 @@ from imblearn.combine import SMOTEENN
 
 from xgboost import XGBClassifier
 
+from scripts.feature_engineering import Featurizer
+
 import logging
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DatasetProcessor:
-    def __init__(self, dataset_name, splits, featuriser):
-        self.dataset_name = dataset_name
+    """
+    Handles dataset loading, preprocessing, scaling, and resampling.
+
+    Attributes:
+        splits (list): Dataset splits (e.g., ['train', 'validation', 'test']).
+        featuriser (str): Featurizer used for feature extraction.
+
+    Methods:
+        load_featurised_dataset(): Loads and processes featurized dataset splits.
+        get_scaled_set(train, test, val, target='Y'): Scales feature sets and removes low-variance columns.
+        preprocess_and_resample(target='Y'): Applies scaling and resampling (SMOTE, Oversampling, SMOTEENN).
+    """
+    def __init__(self, splits, featuriser):
         self.splits = splits
         self.featuriser = featuriser
 
@@ -40,102 +54,68 @@ class DatasetProcessor:
         """
         logger.info("Loading featurized dataset...")
         
-        featurised_partition = [
-            f"../data/{self.dataset_name}/{key}_{self.featuriser}_featurized.csv" 
-            for key in self.splits.keys()
+        featurised_splits = [
+            f"../data/{split}_{self.featuriser}_featurized.csv" 
+            for split in self.splits
         ]
-    
-        featurised_partition = [
-            f"../data/{self.dataset_name}/{key}_{self.featuriser}_featurized.csv" 
-            for key in self.splits.keys()
-        ]
+
+        datasets = ["train", "validation", "test"]
+        data_dict = {}
         
-        train = pd.read_csv(featurised_partition[0])
-        train.drop(columns=['key', 'input'], inplace=True)
-        logger.info("Train dataset loaded and processed.")
+        for i, name in enumerate(datasets):
+            data_dict[name] = pd.read_csv(featurised_splits[i]).drop(columns=['key', 'input'])
+            logger.info(f"{name.capitalize()} dataset loaded and processed.")
         
-        validation = pd.read_csv(featurised_partition[1])
-        validation.drop(columns=['key', 'input'], inplace=True)
-        logger.info("Validation dataset loaded and processed.")
-        
-        test = pd.read_csv(featurised_partition[2])
-        test.drop(columns=['key', 'input'], inplace=True)
-        logger.info("Test dataset loaded and processed.")
+        train, validation, test = data_dict["train"], data_dict["validation"], data_dict["test"]
 
         return train, validation, test
 
-    def prepare_features_and_target(self, df, target='Y'):
-        """
-        Prepare feature matrix (X) and target variable (y) from the dataset.
-        
-        Args:
-            df (DataFrame): The dataset containing features and target variable.
-            target (str): The column name of the target variable. Default is 'Y'.
-        
-        Returns:
-            DataFrame: Processed dataset with corrected column names and filtered rows.
-        """
-        logger.info("Preparing features and target variable...")
-    
-        X = df.drop(columns=[target])
-        y = df[target]
 
-        if self.featuriser == 'eos24ci': 
-            # The last character in the last 10 columns in DrugTax Featurized sets makes the model throw exceptions. 
-            # So,I replaced them
-            new_cols = X.columns.tolist()
-            xters = [chr(char) for char in range(ord('a'), ord('z') + 1)][:10]
-            
-            for i, (char, col) in enumerate(zip(X.columns[-10:], xters)):
-                new_cols[-10 + i] = char[:-1] + col  # Replace only the last character
-            
-            X.columns = new_cols
-
-        X = X[(X != 0).any(axis=1) & X.notna().any(axis=1)]
-        y = y.loc[X.index]
-        
-        df = X.merge(y, left_on=X.index, right_on=y.index, how='inner').drop(columns=['key_0'])
-        logger.info("Features and target variable prepared successfully.")
-        
-        return df
-    
     def get_scaled_set(self, train, test, val, target='Y'):
         """
         Scale the feature sets and return the processed training, validation, and test datasets.
-        
+    
         Args:
             train (DataFrame): Training dataset containing features and target.
             test (DataFrame): Testing dataset containing features and target.
             val (DataFrame): Validation dataset containing features and target.
             target (str): The column name of the target variable. Default is 'Y'.
-        
+    
         Returns:
             Arrays: Scaled feature matrices and target variables for train, test, and validation sets.
         """
         logger.info("Scaling feature sets...")
-        X_train, y_train = train.drop(columns=[target]), train[target]    
-        X_test, y_test = test.drop(columns=[target]), test[target]
-        X_val, y_val = val.drop(columns=[target]), val[target]
-
-        #zero_columns = X_train.columns[(X_train.nunique() == 1)]
-        zero_columns = ['dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223', 
-                        'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301', 
-                        'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310', 
-                        'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314']
-        X_train.drop(columns = zero_columns, inplace=True)
-        X_test.drop(columns = zero_columns, inplace=True)
-        X_val.drop(columns = zero_columns, inplace=True)
-
+    
+        def clean_data(X, y):
+            """Removes all-zero or NaN rows and updates y accordingly."""
+            X = X[(X != 0).any(axis=1) & X.notna().any(axis=1)]
+            y = y.loc[X.index]
+            
+            return X, y
+    
+        # Extract features and target
+        X_train, y_train = clean_data(train.drop(columns=[target]), train[target])
+        X_test, y_test = clean_data(test.drop(columns=[target]), test[target])
+        X_val, y_val = clean_data(val.drop(columns=[target]), val[target])
+    
+        # Identify and remove zero-variance columns
+        zero_columns = X_train.columns[X_train.nunique() == 1].tolist()
+        X_train.drop(columns=zero_columns, inplace=True)
+        X_test.drop(columns=zero_columns, inplace=True)
+        X_val.drop(columns=zero_columns, inplace=True)
+    
         logger.info(f"Removed {len(zero_columns)} zero-variance columns.")
-
-        scalar = StandardScaler()
-        X_train_scaled = scalar.fit_transform(X_train)
-        X_test_scaled = scalar.transform(X_test)
-        X_val_scaled = scalar.transform(X_val)
-
+    
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        X_val_scaled = scaler.transform(X_val)
+    
         logger.info("Feature scaling completed successfully.")
-
+    
         return X_train_scaled, y_train, X_test_scaled, y_test, X_val_scaled, y_val
+
     
     def preprocess_and_resample(self, target='Y'):
         """
@@ -154,13 +134,10 @@ class DatasetProcessor:
         """
         logger.info("Starting dataset preprocessing and resampling...")
         train, validation, test = self.load_featurised_dataset()
-        train = self.prepare_features_and_target(train, target=target)
-        test = self.prepare_features_and_target(test, target=target)
-        val = self.prepare_features_and_target(validation, target=target)
 
         logger.info("Feature preparation completed.")
         
-        X_train, y_train, X_test, y_test, X_val, y_val = self.get_scaled_set(train, test, val, target=target)
+        X_train, y_train, X_test, y_test, X_val, y_val = self.get_scaled_set(train, test, validation, target = target)
         logger.info("Feature scaling completed.")
         
         smote = SMOTE(random_state=42)
@@ -181,19 +158,38 @@ class DatasetProcessor:
                 X_test, y_test, 
                 X_val, y_val, 
                 X_train_smote, y_train_smote, 
-                X_train_over, y_train_over, 
+                X_train_over, y_train_over,
                 X_train_hybrid, y_train_hybrid
                )
 
 class Modelling:
-    def __init__(self, dataset_name):
-        self.dataset_name = dataset_name
-
-    def train_randomforest_cv(self, X_train, y_train, X_test, y_test, X_val, y_val, class_weight, use_stratified_kfold = False, use_gridsearch = False):
-        """
-        Train a RandomForest classifier with optional GridSearchCV and StratifiedKFold validation.
+    """
+    A class for training, evaluating, and visualizing machine learning models.
     
+    Methods:
+        train_model: Trains a RandomForest or XGBoost classifier with optional configurations (model_config).
+            Example:
+                model, model_result = modelling.train_model(
+                    'randomforest',  # or 'xgboost'
+                    X_train, y_train, X_test, y_test, X_val, y_val,
+                    class_weight=True, #or False
+                    use_stratified_kfold=True, #or False
+                    use_gridsearch=True #or False
+                )
+
+        evaluate_model: Selects the best model based on ROC-AUC score.
+        visualize_model: Generates performance visualizations.
+        model_config: Configures and returns model settings.
+        compute_metrics: Computes classification metrics.
+    """
+
+    def train_model(self, model_type, X_train, y_train, X_test, y_test, X_val, y_val, 
+                    class_weight=False, use_stratified_kfold=False, use_gridsearch=False):
+        """
+        Generalized function to train RandomForest or XGBoost classifier.
+        
         Args:
+            model_type: 'randomforest' or 'xgboost'
             X_train, y_train: Training features and labels
             X_test, y_test: Test features and labels
             X_val, y_val: Validation features and labels
@@ -204,28 +200,29 @@ class Modelling:
         Returns:
             Tuple: (Trained model, Dictionary containing metrics and predictions)
         """
-        logger.info("Initializing RandomForest Classifier...")
+        logger.info(f"Initializing {model_type.capitalize()} Classifier...")
         
-        rf_params = {
-            "n_estimators": 200,
-            "criterion": "gini",
-            "min_samples_split": 5,
-            "min_samples_leaf": 5,
-            "max_features": "sqrt",
-            "random_state": 42,
-            "n_jobs": -1
-        }
-        
-        class_weights = compute_class_weight('balanced', classes = np.unique(y_train), y = y_train)
-        class_weight_dict = {0: class_weights[0], 1: class_weights[1]}
-    
-        rf_params["max_depth"] = 4 if class_weight else 3
-        if class_weight:
-            rf_params["class_weight"] = class_weight_dict
-    
-        rf = RandomForestClassifier(**rf_params)
-    
-        if use_gridsearch:
+        if model_type == "randomforest":
+            params = {
+                "n_estimators": 200,
+                "criterion": "gini",
+                "min_samples_split": 5,
+                "min_samples_leaf": 5,
+                "max_features": "sqrt",
+                "random_state": 42,
+                "n_jobs": -1,
+                "max_depth" : 5
+            }
+            
+            class_weights = compute_class_weight('balanced', classes = np.unique(y_train), y = y_train)
+            class_weight_dict = {0: class_weights[0], 1: class_weights[1]}
+            
+            if class_weight:
+                params["class_weight"] = class_weight_dict
+                params["max_depth"] = 3
+
+                
+            model = RandomForestClassifier(**params)
             param_grid = {
                 "n_estimators": [100, 200, 300],
                 "max_depth": [5],
@@ -233,97 +230,24 @@ class Modelling:
                 "min_samples_leaf": [1, 5, 10],
                 "max_features": ["sqrt", "log2"]
             }
-    
-            grid_search = GridSearchCV(rf, param_grid, cv = 5, scoring = "roc_auc", n_jobs = -1, verbose = 1)
-            grid_search.fit(X_train, y_train)
-            rf = grid_search.best_estimator_
-            logger.info(f"Best Parameters from GridSearchCV: {grid_search.best_params_}")
-
-        if use_stratified_kfold:
-            logger.info("Performing StratifiedKFold cross-validation...")
-            cv = StratifiedKFold(n_splits = 5, shuffle = True, random_state = 42)
-            cv_scores = []
-    
-            for train_idx, val_idx in cv.split(X_train, y_train):
-                X_t, X_v = X_train[train_idx], X_train[val_idx]
-                y_t, y_v = y_train[train_idx], y_train[val_idx]
-    
-                rf.fit(X_t, y_t)
-                y_pred_v = rf.predict(X_v)
-                cv_scores.append(roc_auc_score(y_v, y_pred_v))
-    
-            logger.info(f"Cross-Validation ROC AUC Scores: {cv_scores}")
-            logger.info(f"Mean ROC AUC: {sum(cv_scores) / len(cv_scores):.4f}")
-    
-        rf.fit(X_train, y_train)
         
-        # Compute metrics
-        y_train_pred = rf.predict(X_train)
-        y_train_proba = rf.predict_proba(X_train)[:, 1]
-        train_metrics = self.compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
-    
-        y_val_pred = rf.predict(X_val)
-        y_val_proba = rf.predict_proba(X_val)[:, 1]
-        val_metrics = self.compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
-    
-        y_test_pred = rf.predict(X_test)
-        y_test_proba = rf.predict_proba(X_test)[:, 1]
-        test_metrics = self.compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
-        
-        # Precision-Recall curve
-        precision_curve, recall_curve, _ = precision_recall_curve(y_test, y_test_proba)
-    
-        return rf, {
-            "train_metrics": train_metrics,
-            "val_metrics": val_metrics,
-            "test_metrics": test_metrics,
-            "y_train_pred": y_train_pred,
-            "y_train_proba": y_train_proba,
-            "y_val_pred": y_val_pred,
-            "y_val_proba": y_val_proba,
-            "y_test_pred": y_test_pred,
-            "y_test_proba": y_test_proba,
-            "precision_curve" : precision_curve, 
-            "recall_curve" : recall_curve
-        }
-
-    def train_xgboost_cv(self, X_train, y_train, X_test, y_test, X_val, y_val, class_weight = None, use_stratified_kfold = False, use_gridsearch = False):
-        """
-        Train a XGBoost classifier with optional GridSearchCV and StratifiedKFold validation.
-    
-        Args:
-            X_train, y_train: Training features and labels
-            X_test, y_test: Test features and labels
-            X_val, y_val: Validation features and labels
-            class_weight: Boolean, whether to apply class weighting
-            use_stratified_kfold: Boolean, whether to use StratifiedKFold cross-validation
-            use_gridsearch: Boolean, whether to perform GridSearchCV for hyperparameter tuning
-    
-        Returns:
-            Tuple: (Trained model, Dictionary containing metrics and predictions)
-        """
-        logger.info("Initializing XGBoost Classifier...")
-        
-        xgb_params = {
-            "n_estimators": 200,
-            "learning_rate": 0.1,
-            "max_depth": 4 if class_weight else 3,
-            "min_child_weight": 5,
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "random_state": 42,
-            "n_jobs": -1,
-            "eval_metric": "logloss"
-        }
-        
-        if class_weight:
-            xgb_params["scale_pos_weight"] = sum(y_train == 0) / sum(y_train == 1) 
-        
-        xgb = XGBClassifier(**xgb_params)
-        
-        if use_gridsearch:
-            logger.info("Performing GridSearchCV for hyperparameter tuning...")
-
+        elif model_type == "xgboost":
+            params = {
+                "n_estimators": 200,
+                "learning_rate": 0.1,
+                "max_depth": 4 if class_weight else 3,
+                "min_child_weight": 5,
+                "subsample": 0.8,
+                "colsample_bytree": 0.8,
+                "random_state": 42,
+                "n_jobs": -1,
+                "eval_metric": "logloss"
+            }
+            
+            if class_weight:
+                params["scale_pos_weight"] = sum(y_train == 0) / sum(y_train == 1)
+            
+            model = XGBClassifier(**params)
             param_grid = {
                 "n_estimators": [100, 200, 300],
                 "max_depth": [3, 5],
@@ -332,46 +256,49 @@ class Modelling:
                 "subsample": [0.8],
                 "colsample_bytree": [0.8, 1.0]
             }
-            
-            grid_search = GridSearchCV(xgb, param_grid, cv=5, scoring="roc_auc", n_jobs=-1, verbose=1)
-            grid_search.fit(X_train, y_train)
-            xgb = grid_search.best_estimator_
-            logger.info(f"Best Parameters from GridSearchCV: {grid_search.best_params_}")
+        else:
+            raise ValueError("Unsupported model type. Use 'randomforest' or 'xgboost'.")
         
-        if use_stratified_kfold:
-            logger.info("Performing StratifiedKFold cross-validation...")
+        if use_gridsearch:
+            logger.info("Performing GridSearchCV for hyperparameter tuning...")
+            grid_search = GridSearchCV(model, param_grid, cv=5, scoring="roc_auc", n_jobs=-1, verbose=1)
+            grid_search.fit(X_train, y_train)
+            model = grid_search.best_estimator_
+            logger.info(f"Best Parameters from GridSearchCV: {grid_search.best_params_}")
 
+        
+        elif use_stratified_kfold:
+            logger.info("Performing StratifiedKFold cross-validation...")
             cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
             cv_scores = []
-            
             for train_idx, val_idx in cv.split(X_train, y_train):
                 X_t, X_v = X_train[train_idx], X_train[val_idx]
                 y_t, y_v = y_train[train_idx], y_train[val_idx]
-                
-                xgb.fit(X_t, y_t)
-                y_pred_v = xgb.predict(X_v)
+                model.fit(X_t, y_t)
+                y_pred_v = model.predict(X_v)
                 cv_scores.append(roc_auc_score(y_v, y_pred_v))
-            
             logger.info(f"Cross-Validation ROC AUC Scores: {cv_scores}")
             logger.info(f"Mean ROC AUC: {sum(cv_scores) / len(cv_scores):.4f}")
+
+        else:
+            model.fit(X_train, y_train)
         
-        xgb.fit(X_train, y_train)
-        
-        y_train_pred = xgb.predict(X_train)
-        y_train_proba = xgb.predict_proba(X_train)[:, 1]
+        # Compute metrics
+        y_train_pred = model.predict(X_train)
+        y_train_proba = model.predict_proba(X_train)[:, 1]
         train_metrics = self.compute_metrics(y_train, y_train_pred, y_train_proba, "Train")
-    
-        y_val_pred = xgb.predict(X_val)
-        y_val_proba = xgb.predict_proba(X_val)[:, 1]
+        
+        y_val_pred = model.predict(X_val)
+        y_val_proba = model.predict_proba(X_val)[:, 1]
         val_metrics = self.compute_metrics(y_val, y_val_pred, y_val_proba, "Validation")
-    
-        y_test_pred = xgb.predict(X_test)
-        y_test_proba = xgb.predict_proba(X_test)[:, 1]
+        
+        y_test_pred = model.predict(X_test)
+        y_test_proba = model.predict_proba(X_test)[:, 1]
         test_metrics = self.compute_metrics(y_test, y_test_pred, y_test_proba, "Test") 
         
         precision_curve, recall_curve, _ = precision_recall_curve(y_test, y_test_proba)
         
-        return xgb, {
+        return model, {
             "train_metrics": train_metrics,
             "val_metrics": val_metrics,
             "test_metrics": test_metrics,
@@ -381,10 +308,10 @@ class Modelling:
             "y_val_proba": y_val_proba,
             "y_test_pred": y_test_pred,
             "y_test_proba": y_test_proba,
-            "precision_curve" : precision_curve,
-            "recall_curve" : recall_curve
-            
+            "precision_curve": precision_curve,
+            "recall_curve": recall_curve
         }
+
 
     def evaluate_model(self, model_results):
         """
@@ -401,7 +328,7 @@ class Modelling:
         model = None
         results = None
         for model, results in model_results.items():
-            roc_score = results['test_metrics']['roc_auc'] if self.dataset_name == 'hERG' else results['metrics']['roc_auc']
+            roc_score = results['test_metrics']['roc_auc']
             
             if roc_score > best_roc_auc:
                 best_roc_auc = roc_score
@@ -429,11 +356,11 @@ class Modelling:
         - Feature Importance (if applicable)
         - Prints tabular performance metrics
         """
-        save_path = f"../data/figures/{self.dataset_name}/"
+        save_path = f"../data/figures/"
         
-        train_metric = model_results['train_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
-        val_metric = model_results['val_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
-        test_metric = model_results['test_metrics'] if self.dataset_name == 'hERG' else  model_results['metrics']
+        train_metric = model_results['train_metrics'] 
+        val_metric = model_results['val_metrics'] 
+        test_metric = model_results['test_metrics']
 
         best_roc_auc = test_metric['roc_auc']
         
@@ -441,13 +368,11 @@ class Modelling:
         logger.info(f"Best ROC-AUC Score: {best_roc_auc:.4f}")
 
         df = pd.DataFrame({'Train': train_metric, 'Validation': val_metric, 'Test': test_metric})
-        #df.drop(columns = ['confusion_matrix'], inplace = True)
 
         # Print in tabular format
-        print(tabulate.tabulate(df, headers='keys', tablefmt='grid'))
+        print(tabulate.tabulate(df, headers = 'keys', tablefmt = 'grid'))
 
-        #print(, len(model_results["y_test_proba"]))
-        fpr, tpr, _ = roc_curve(y_test, model_results["y_test_proba"]) if self.dataset_name == 'hERG' else  roc_curve(y_test, model_results["y_test_proba"][:len(y_test)])
+        fpr, tpr, _ = roc_curve(y_test, model_results["y_test_proba"])
         
         plt.figure(figsize=(6, 4))
         plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {best_roc_auc:.4f})")
@@ -477,7 +402,7 @@ class Modelling:
         plt.show()
         logger.info(f"Precision-Recall Curve saved at {pr_curve_path}")
         
-        y_test_pred = model_results["y_test_pred"] if self.dataset_name == 'hERG' else model_results["y_test_pred"][:len(y_test)]
+        y_test_pred = model_results["y_test_pred"]
         cm = confusion_matrix(y_test, y_test_pred) 
         TN, FP, FN, TP = cm.ravel()
     
@@ -536,9 +461,9 @@ class Modelling:
             "Original Set": (X_train, y_train),
             "Oversampled": (X_train_over, y_train_over),
             "SMOTE": (X_train_smote, y_train_smote),
-            "Hybrid": (X_train_hybrid, y_train_hybrid),
+            "Hybrid": (X_train_hybrid, y_train_hybrid)
             }
-            
+        
         configs = [
             {"class_weight": False, "use_stratified_kfold": False, "use_gridsearch": False},
             {"class_weight": True, "use_stratified_kfold": False, "use_gridsearch": False},
@@ -553,7 +478,7 @@ class Modelling:
     
         return train_sets, configs
         
-    def compute_metrics(self, y_true, y_pred, y_proba, dataset_name):
+    def compute_metrics(self, y_true, y_pred, y_proba, split_name):
         """
         Compute classification metrics and log results.
         """
@@ -564,7 +489,7 @@ class Modelling:
         f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) != 0 else 0
         roc_auc = roc_auc_score(y_true, y_proba)
         
-        logger.info(f"{self.dataset_name} Metrics: Accuracy={accuracy:.4f}, Precision={precision:.4f}, Recall={recall:.4f}, F1 Score={f1_score:.4f}, ROC AUC={roc_auc:.4f}")
+        logger.info(f"{split_name} Metrics: Accuracy={accuracy:.4f}, Precision={precision:.4f}, Recall={recall:.4f}, F1 Score={f1_score:.4f}, ROC AUC={roc_auc:.4f}")
         
         return {
                 "confusion_matrix": (tn, fp, fn, tp),
@@ -575,43 +500,40 @@ class Modelling:
                 "roc_auc": roc_auc
             }
     
-    def apply_trained_model(self, model, X, y):
-        """
-        Applies a trained model to training, validation, and test datasets, 
-        computes performance metrics, and returns predictions and probabilities.
-
-        Parameters:
-        - model: Trained model to be evaluated.
-        - X, y: New dataset.
-    
-        Returns:
-        - model: The trained model.
-        - results (dict): A dictionary containing:
-            - Performance metrics for train, validation, and test sets.
-            - Predicted values and probabilities for each set.
-            - Precision-recall curve values.
-        """
-        logger.info("Applying the trained model to datasets...")
+    def apply_trained_model(self, data, featuriser):
         
+        logger.info("Applying the trained model to dataset...")
+        featurizer = Featurizer(model_id = featuriser)
+        output_path = featurizer.featurize(input_file = data)
+        
+        #with open(f"../models/best_{featuriser}_model2.pkl", "rb") as f:
+        with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
+            model = pkl.load(f)
+
+        X = pd.read_csv(output_path)
+        y = X['Y']
+        X.drop(columns=['key', 'input', 'Y'], inplace = True)
+        if featuriser == 'eos5guo':
+            X.drop(columns = ['dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223', 
+                              'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301', 
+                              'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310', 
+                              'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'], inplace = True)
         y_pred = model.predict(X)
         y_proba = model.predict_proba(X)[:, 1]
-        metrics = self.compute_metrics(y, y_pred, y_proba, "Train")
+
+        tn, fp, fn, tp = confusion_matrix(y, y_pred).ravel()
+
+        accuracy = (tp + tn)/(tp + tn + fp + fn)
+        specificity = tn / (tn + fp)  
+        npv = tn / (tn + fn) 
+        roc_auc = roc_auc_score(y, y_proba)
+
+        # Tabulate results
+        metrics_table = [
+            ["Accuracy", accuracy],
+            ["Specificity", specificity],
+            ["Negative Predictive Value (NPV)", npv],
+            ["ROC-AUC", roc_auc]
+        ]
     
-        precision_curve, recall_curve, _ = precision_recall_curve(y, y_proba)
-        
-        logger.info("Model evaluation completed.")
-        logger.info(f"Train ROC-AUC: {metrics['roc_auc']:.4f}")
-        logger.info(f"Validation ROC-AUC: {metrics['roc_auc']:.4f}")
-        logger.info(f"Test ROC-AUC: {metrics['roc_auc']:.4f}")
-    
-        return model, {
-            "metrics": metrics,
-            "y_pred": y_pred,
-            "y_proba": y_proba,
-            "y_val_pred": y_pred,
-            "y_val_proba": y_proba,
-            "y_test_pred": y_pred,
-            "y_test_proba": y_proba,
-            "precision_curve" : precision_curve, 
-            "recall_curve" : recall_curve
-        }
+        print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))

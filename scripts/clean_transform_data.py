@@ -58,15 +58,12 @@ class DataProcessor:
                     df.at[index, "Drug_ID"] = formula  # Use formula as fallback
 
                     log_entry = {"SMILES": smile, "Formula": formula, "Error": str(e)}
-
-                # Save log entry
-                self.log_data.append(log_entry)
+                    logger.info(f"Processed: {log_entry}")
 
                 # Pause to avoid API rate limits
                 time.sleep(5)
             else:
                 logger.error(f"Invalid SMILES: {smile}")
-                self.log_data.append({"SMILES": smile, "Error": "Invalid SMILES"})
 
         df.to_csv(self.output_csv, index=False)
         logger.info(f"Processed data saved to {self.output_csv}")

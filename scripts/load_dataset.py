@@ -38,7 +38,7 @@ class DataDownloader:
                 return None, None, None
 
             # Set dataset directory inside data_dir
-            dataset_dir = os.path.join(self.data_dir, name)
+            dataset_dir = self.data_dir #os.path.join(, name)
             dataset_file = os.path.join(dataset_dir, f"{name}.csv")
 
             os.makedirs(dataset_dir, exist_ok=True)

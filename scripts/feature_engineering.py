@@ -11,20 +11,18 @@ class Featurizer:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Set up logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(handler)
 
-    def featurize(self, input_file, dataset_name):
+    def featurize(self, input_file):
         """
         Featurizes the input CSV using the specified Ersilia model.
 
         Args:
             input_file (str): The name of the input file (without extension).
-            dataset_name (str): The dataset directory name inside dataset_dir.
 
         Returns:
             str: Path to the output featurized CSV file.
@@ -32,7 +30,7 @@ class Featurizer:
         try:
             t1 = time.time()
             
-            dataset_path = self.dataset_dir / dataset_name
+            dataset_path = self.dataset_dir
             input_file_path = dataset_path / f"{input_file}.csv"
             output_file_path = dataset_path / f"{input_file}_{self.model_id}_featurized.csv"
 
@@ -41,13 +39,13 @@ class Featurizer:
                 return None
 
             self.logger.info(f"Loading Ersilia model: {self.model_id}")
-            model = ErsiliaModel(model=self.model_id)
+            model = ErsiliaModel(model = self.model_id)
             model.serve()
             model.run(input=str(input_file_path), output=str(output_file_path))
 
             featurized_df = pd.read_csv(output_file_path)
 
-            path = self.dataset_dir / f'{dataset_name}' / f'{dataset_name}.csv'
+            path = self.dataset_dir / f'{input_file}.csv'
             if not path.exists():
                 self.logger.warning(f"hERG dataset not found: {path}")
             else:

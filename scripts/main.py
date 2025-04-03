@@ -16,7 +16,7 @@ while True:
         break
     print("Invalid input. Please enter either 'AMES' or 'hERG'.")
 
-featuriser = "eos5guo" #ErG 2D
+featuriser = "eos4u6p" #"eos5guo" #ErG 2D
 print("Starting Automation...")
 
 # Step 1: Download Data
