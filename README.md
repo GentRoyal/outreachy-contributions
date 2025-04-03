@@ -240,14 +240,13 @@ print("Hybrid shape:", X_train_hybrid.shape) -> Hybrid shape: (492, 1024)
 | F1-Score       | 89.97%  | 83.33%       | 86.32%  |
 | ROC AUC        | 95.40%  | 79.57%       | 82.24%  |
 
-I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png)
-which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers). 
-But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) to assess classification quality.
-The [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png).
+I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ErG%202D%20Descriptors.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ErG%202D%20Descriptors.png) which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers).
+But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ErG%202D%20Descriptors.png) to assess classification quality.
+The ROC-AUC curve shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the confusion matrix.
 The 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly which is quite good but the 18.42% specificity means the model really struggle to classify negative class (No Blockage), which is very low.
 The 18.42% means that the remaining 81.58% were drugs that can block the hERG were misclassified as non-blockers. This percentage is too high; I would say it is unacceptable and it is too risky to deploy such model even though the ROC-AUC curve shows that the model is 82.24% confident in its prediction.
 So, we need to find a way to improve the model's specificity.
-I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
+I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ErG%202D%20Descriptors.png) to highlight key predictors.
 I need to point at this point that the featuriser does not return descriptive names as the column names except for a few, so it's difficult to say what each feature represents.
 If we can get the descriptive feature names, the feature importance visual would be more interpretable.
 
@@ -264,7 +263,7 @@ The metrics of the model are as follows:
 | ROC_AUC         | 100.0%              | 82.67%            | 82.56%             |
 
 The model clearly overfits the train set because of its perfect rating on the train set but overall, the model generalize moderately well and it struggles with unseen data.
-Similarly, I the same figures I created for the ErG 2D model; a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ERG%202D%20Featurized%20Dataset.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png), a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ERG%202D%20Featurized%20Dataset.png) and a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ERG%202D%20Featurized%20Dataset.png) to highlight key predictors.
+Similarly, I the same figures I created for the ErG 2D model; a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20Ersilia%20Compound%20Embeddings.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20Ersilia%20Compound%20Embeddings.png), a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20Ersilia%20Compound%20Embeddings.png) and a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20Ersilia%20Compound%20Embeddings.png) to highlight key predictors.
 
 To decide which model is better, I used a trade-off of which poses more risk "misclassifying a drug as hERG blocker or misclassifying a drug as not" i.e. False Positive vs False Negative
 
@@ -281,7 +280,7 @@ The Ersilia Compound Embeddings model on the other hand has lower NPV (55.81%) b
 
 Using my trade-off, I would give priority to minimizing the risk of missing a dangerous hERG blocker, so I’d choose the Ersilia Compound Embeddings model. Even though its NPV is lower, its higher specificity makes it better at avoiding the false negative that could lead to serious health risks.
 
-I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms of the ROC_AUC.
+I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms of the [ROC AUC](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ersilia_embedding_roc_auc_second.png).
 | Metric          | Train  | Validation   | Test    |
 |------------------|------------------|--------------------|--------------------|
 | Accuracy         | 97.96%              | 82.14%            | 74.62%             |
@@ -290,8 +289,9 @@ I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms o
 | F1_Score        | 97.97%              | 88.79%           | 82.11%             |
 | ROC_AUC         | 99.82%              | 78.36%            | 89.43%             |
 
-But this came at a price, the [specificity](link) reduced to 44.00% and the NPV increased to 78.57%
+But this came at a price, the [specificity](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ersilia_embedding_confusion_matrix_second.png) reduced to 44.00% and the NPV increased to 78.57%
 
 ### Conclusion
 In terms of NPV/Specificity trade-off, the first ErG 2D model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
-In terms of ROC-AUC, the second ErG 2D model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
+While in terms of ROC-AUC, the second ErG 2D model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
+I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the model's classification. A model can have a good ROC-AUC but fail to capture the negative classes. Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.
