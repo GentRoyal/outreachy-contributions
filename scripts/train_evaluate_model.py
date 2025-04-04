@@ -506,7 +506,6 @@ class Modelling:
         featurizer = Featurizer(model_id = featuriser)
         output_path = featurizer.featurize(input_file = data)
         
-        #with open(f"../models/best_{featuriser}_model2.pkl", "rb") as f:
         with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
             model = pkl.load(f)
 
@@ -534,6 +533,29 @@ class Modelling:
             ["Specificity", specificity],
             ["Negative Predictive Value (NPV)", npv],
             ["ROC-AUC", roc_auc]
+        ]
+    
+        print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))
+
+    def make_predictions(self, X, featuriser):
+        
+        logger.info("Making Prediction...")
+        
+        with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
+            model = pkl.load(f)
+
+        if featuriser == 'eos5guo':
+            X.drop(columns = ['dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223', 
+                              'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301', 
+                              'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310', 
+                              'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'], inplace = True)
+        y_pred = model.predict(X)
+        y_proba = model.predict_proba(X)[:, 1]
+
+        # Tabulate results
+        metrics_table = [
+            ["Prediction", "Herg Blocker" if y_pred == 1 else "Not Herg Blocker"],
+            ["Probability", y_proba]
         ]
     
         print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))

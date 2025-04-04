@@ -50,6 +50,7 @@ The sample drug structures can be found [here](https://github.com/GentRoyal/outr
 ├── train_{featurizer_code}_featurised.csv
 ├── validation_{featurizer_code}_featurised.csv
 ├── test_{featurizer_code}_featurised.csv
+├── placeholder.csv # Placeholder for featurized SMILE during predictions
 ├
 ├── models/             # Saved machine learning models (pickle file)
 ├── best_eos2gw4_model.pkl 
@@ -117,38 +118,25 @@ cd scripts
 python main.py
 ```
 - Follow Prompt to interact
+```
+hERG Blocker Prediction Application!
+
+===== hERG BLOCKER PREDICTION =====
+1. Load Dataset
+2. Featurize Dataset
+3. Generate Exploratory Data Analysis
+4. Assess Performance on Unseen Data
+5. Predict hERG Blocker Status
+6. Exit
+
+Select an option (1-6):
+```
 - Note: For WSL users experiencing Matplotlib crashes, set Qt platform:
 ```bash
 echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc
 source ~/.bashrc
 ```
-
-**Method 2: Jupyter Notebook**
-1. Launch Jupyter Lab
-   ```bash
-   jupyter lab
-   ```
-2. Navigate to `notebook/notebooks/TDC - Toxicity Prediction Task.ipynb`
-3. Run the notebook
-4. Enter a valid model name
-5. Expected results are same as method 1 with only difference being that visualizations are also displayed in the notebook
-
-##### Sample Loading Result
-```bash
-2025-03-24 22:52:00,772 - INFO - Downloading 'hERG' dataset...
-Downloading...
-100%|██████████████████| 50.2k/50.2k [00:00<00:00, 241kiB/s]
-Loading...
-Done!
-2025-03-24 22:52:03,325 - INFO - Dataset 'hERG' saved to /home/gentroyal/outreachy-temp/data.csv (Shape: (655, 3))
-2025-03-24 22:52:03,326 - INFO - Splitting dataset using 'scaffold' method...
-100%|███████████████████| 655/655 [00:00<00:00, 1854.63it/s]
-2025-03-24 22:52:03,695 - INFO - Train set saved (Shape: (458, 3))
-2025-03-24 22:52:03,696 - INFO - Validation set saved (Shape: (65, 3))
-2025-03-24 22:52:03,698 - INFO - Test set saved (Shape: (132, 3))
-```
-- It is worth noting that the dataset was splitted using scaffold method of split. This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our model on new data instead of a random split.
-- Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
+Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
 
 ## Task 2: Featurisation
 The choice of Featuriser for this project are based on two criterions
@@ -203,6 +191,9 @@ print("Hybrid shape:", X_train_hybrid.shape) -> Hybrid shape: (492, 1024)
 ### Algorithms Used
 - XGBoostClassifier
 - RandomForestClassifier
+
+It is worth noting that the dataset was splitted using scaffold method of split. 
+This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our model on new data instead of a random split.
 
 ### Evaluation Metrics
 
@@ -294,4 +285,6 @@ But this came at a price, the [specificity](https://github.com/GentRoyal/outreac
 ### Conclusion
 In terms of NPV/Specificity trade-off, the first ErG 2D model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
 While in terms of ROC-AUC, the second ErG 2D model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
-I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the model's classification. A model can have a good ROC-AUC but fail to capture the negative classes. Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.
+I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the model's classification. 
+A model can have a good ROC-AUC but fail to capture the negative classes. 
+Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.

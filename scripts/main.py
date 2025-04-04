@@ -1,123 +1,203 @@
 import pandas as pd
 import pickle as pkl
-import tabulate
 import os
+import sys
 from glob import glob
+from typing import Dict, Tuple, List, Optional, Any, Union
+
 from load_dataset import DataDownloader
 from clean_transform_data import DataProcessor
 from exploratory_analysis import ExploratoryDataAnalysis
 from feature_engineering import Featurizer
 from train_evaluate_model import DatasetProcessor, Modelling
 
-#name = 'hERG' #input("Dataset name: ")
-while True:
-    name = input("Dataset name (AMES or hERG): ").strip()
-    if name in ["AMES", "hERG"]:
-        break
-    print("Invalid input. Please enter either 'AMES' or 'hERG'.")
-
-featuriser = "eos4u6p" #"eos5guo" #ErG 2D
-print("Starting Automation...")
-
-# Step 1: Download Data
-download = 'Y' #input("Use Existing Data? (Y/N): ").strip().upper()
-
-splits = None
-
-if download == 'N':
-    print("\nDownloading data...")
-    downloader = DataDownloader()
-    df, splits = downloader.fetch_dataset(name = name)
-else:
-    print("\nLoading existing data...")
-    try:
-        df = pd.read_csv(f'../data/{name}/{name}.csv')
-        train = pd.read_csv(f'../data/{name}/train.csv') 
-        validation = pd.read_csv(f'../data/{name}/validation.csv') 
-        test = pd.read_csv(f'../data/{name}/test.csv') 
-        splits = {"train": train, "validation": validation, "test": test}
-        print("Data successfully loaded.")
-    except FileNotFoundError as e:
-        print(f"Error: {e}. Dataset not found, attempting to download...")
-        downloader = DataDownloader()
-        df, splits = downloader.fetch_dataset(name = name)
-
-
-# Step 2: Data Preprocessing
-print("\nPerforming Preprocessing...")
-files_to_preprocess = [f"../data/{name}/{key}.csv" for key in splits.keys()]
-for file in files_to_preprocess:
-    processor = DataProcessor(input_csv = file, output_csv = file)
-    processor.process_csv()
-
-
-# Step 3: Perform EDA
-print("\nPerforming EDA...")
-eda = ExploratoryDataAnalysis(dataset_name = name)
-eda.generate_eda()
-
-
-# Step 4: Perform Featurisation
-count = len(glob(f"../data/{name}/*{featuriser}_featurized*"))
-print("\nPerforming Featurisation...")
-if count == 0:
-    featurizer = Featurizer(model_id = featuriser)
-    files = ['train', 'test', 'validation']
-    for file in files:
-        output_path = featurizer.featurize(input_file = file, dataset_name = name)
-
-else:
-    print("\nData has already by Featurised...")
-
-
-# Step 5: Modelling
-data_processing = DatasetProcessor(dataset_name = name, splits = splits, featuriser = featuriser)
-modelling = Modelling(dataset_name = name)
-
-(X_train, y_train, 
-X_test, y_test, 
-X_val, y_val, 
-X_train_smote, y_train_smote, 
-X_train_over, y_train_over, 
-X_train_hybrid, y_train_hybrid) = data_processing.preprocess_and_resample()
-
-train_sets, configs = modelling.model_config(X_train, y_train, 
-                                             X_train_over, y_train_over, 
-                                             X_train_smote, y_train_smote, 
-                                             X_train_hybrid, y_train_hybrid)
-
+class hERGBlockerApp:
+    def __init__(self):
+        self.datasets = ["hERG"]
+        self.featurisers = ["eos2gw4", "eos5guo"]
+        self.current_dataset = None
+        self.current_featuriser = None
+        self.splits = None
+        self.df = None
+        self.best_model = None
+        
+    def display_menu(self):
+        """Display the main menu options"""
+        print("\n===== hERG BLOCKER PREDICTION =====")
+        print("1. Load Dataset")
+        print("2. Featurize Dataset")
+        print("3. Generate Exploratory Data Analysis")
+        print("4. Assess Performance on Unseen Data")
+        print("5. Predict hERG Blocker Status")
+        print("6. Exit")
+        return input("\nSelect an option (1-6): ")
     
-with open('../models/herg_model.pkl', "rb") as f:
-    all_model_results = pkl.load(f)
-
-best_roc_auc = 0
-best_model = None
-results = None
-
-for model, results in all_model_results.items():
-    roc_score = results['test_metrics']['roc_auc']
+    def load_dataset(self):
+        """Load a dataset - download new or use existing"""
+        print("\n===== LOAD DATASET =====")
+        
+        # Select dataset
+        while True:
+            print("\nAvailable datasets:")
+            for i, dataset in enumerate(self.datasets, 1):
+                print(f"{i}. {dataset}")
+            
+            try:
+                choice = int(input("\nSelect dataset number: "))
+                if 1 <= choice <= len(self.datasets):
+                    self.current_dataset = self.datasets[choice - 1]
+                    break
+                else:
+                    print("Invalid selection. Please try again.")
+            except ValueError:
+                print("Please enter a valid number.")
+        
+        # Download new or use existing
+        while True:
+            download_choice = input("\nUse existing data? (Y/N): ").strip().upper()
+            if download_choice in ['Y', 'N']:
+                break
+            print("Invalid input. Please enter 'Y' or 'N'.")
+            
+        if download_choice == 'N':
+            print(f"\nDownloading {self.current_dataset} dataset...")
+            downloader = DataDownloader()
+            self.df, self.splits = downloader.fetch_dataset(name = self.current_dataset)
+            print(f"Dataset {self.current_dataset} successfully downloaded.")
+        else:
+            print(f"\nLoading existing {self.current_dataset} dataset...")
+            try:
+                self.df = pd.read_csv(f'../data/{self.current_dataset}.csv')
+                train = pd.read_csv(f'../data/train.csv') 
+                validation = pd.read_csv(f'../data/validation.csv') 
+                test = pd.read_csv(f'../data/test.csv') 
+                self.splits = {"train": train, "validation": validation, "test": test}
+                print("Data successfully loaded.")
+            except FileNotFoundError as e:
+                print(f"Error: {e}. Dataset not found, attempting to download...")
+                downloader = DataDownloader()
+                self.df, self.splits = downloader.fetch_dataset(name = self.current_dataset)
+        
+        # Preprocessing
+        files_to_preprocess = [f"../data/{key}.csv" for key in self.splits.keys()]
+        for file in files_to_preprocess:
+            processor = DataProcessor(input_csv = file, output_csv = file)
+            processor.process_csv()
+        
+        print(f"\n{self.current_dataset} dataset loaded and preprocessed successfully.")
     
-    if roc_score > best_roc_auc:
-        best_roc_auc = roc_score
-        best_model = model
-        best_results = results
+    def featurize_dataset(self):
+        """Featurize the loaded dataset"""
+        if not self.current_dataset:
+            print("\nError: No dataset loaded. Please load a dataset first.")
+            return
+            
+        print("\n===== FEATURIZE DATASET =====")
+        
+        # Select featuriser
+        while True:
+            print("\nAvailable featurizers:")
+            for i, featuriser in enumerate(self.featurisers, 1):
+                print(f"{i}. {featuriser}")
+            
+            try:
+                choice = int(input("\nSelect featurizer number: "))
+                if 1 <= choice <= len(self.featurisers):
+                    self.current_featuriser = self.featurisers[choice - 1]
+                    break
+                else:
+                    print("Invalid selection. Please try again.")
+            except ValueError:
+                print("Please enter a valid number.")
+        
+        count = len(glob(f"../data/*{self.current_featuriser}_featurized*"))
+        
+        if count < 3:
+            print(f"\nFeaturizing {self.current_dataset} dataset with {self.current_featuriser}...")
+            featurizer = Featurizer(model_id = self.current_featuriser)
+            files = ['train', 'test', 'validation']
+            
+            for file in files:
+                output_path = featurizer.featurize(input_file = file)
+            print("Featurization completed successfully.")
+        else:
+            print(f"\nDataset has already been featurized with {self.current_featuriser}.")
+    
+    def generate_eda(self):
+        """Generate exploratory data analysis for the loaded dataset"""
+        try:
+            if not self.current_dataset:
+                raise FileNotFoundError("No dataset loaded. Please load a dataset first.")
+        
+            print(f"\nGenerating exploratory data analysis for {self.current_dataset}...")
+            eda = ExploratoryDataAnalysis(dataset_name = self.current_dataset)
+            eda.generate_eda()
+            print("EDA generation completed. Results are saved in the output directory.")
+        
+        except FileNotFoundError as e:
+            print(f"\nError: {e}")
+        except Exception as e:
+            print(f"\nAn unexpected error occurred: {e}")
+    
+    def apply_trained_model(self):
+        """Apply a trained model to the current dataset"""
+        if not self.current_featuriser:
+            print("\nError: Select a featurizer first.")
+            return
+            
+        print("\n===== APPLY TRAINED MODEL =====")
+        
+        try:
+            file_name = input("Enter a filename: [# Ensure file is located in `data` folder]")
+            modelling = Modelling() 
+            modelling.apply_trained_model(file_name, self.current_featuriser)
+            
+        except Exception as e:
+            print(f"\nError applying trained model: {e}")
+        
+    def predict_herg_blocker(self):
+        """Predict if a drug is a hERG blocker or not"""
+        if not self.current_featuriser:
+            print("\nError: No Featuriser available. Please apply a featuriser first.")
+            return
+            
+        print("\n===== PREDICT hERG BLOCKER STATUS =====")
+        smiles = input("\nEnter SMILES string for the drug: ")
+        if not smiles:
+            print("No SMILES provided. Returning to main menu.")
+            return
+        
+        featurizer = Featurizer(model_id = self.current_featuriser)
+        X = featurizer.featurize_smiles(smiles)
+        
+        modelling = Modelling()
+        prediction = modelling.make_predictions(X, self.current_featuriser)
+        
+    def run(self):
+        """Application main loop"""
+        print("hERG Blocker Prediction Application!")
+        
+        while True:
+            choice = self.display_menu()
+            
+            if choice == '1':
+                self.load_dataset()
+            elif choice == '2':
+                self.featurize_dataset()
+            elif choice == '3':
+                self.generate_eda()
+            elif choice == '4':
+                self.apply_trained_model()
+            elif choice == '5':
+                self.predict_herg_blocker()
+            elif choice == '6':
+                print("\nExiting application. Goodbye!")
+                sys.exit(0)
+            else:
+                print("\nInvalid option. Please try again.")
+                
+            input("\nPress Enter to continue...")
 
-if name != 'hERG':
-    train_sets, configs = modelling.model_config(X_train, y_train, 
-            X_train_over, y_train_over, 
-            X_train_smote, y_train_smote, 
-            X_train_hybrid, y_train_hybrid)
-    
-    model_results = {}
-    
-    for train_set_name, (X_train_set, y_train_set) in train_sets.items():
-        print(train_set_name)
-        model, model_result = modelling.apply_trained_model(best_model, X_train_set, y_train_set)
-        model_results[model] = model_result
-    
-    best_model, best_results = modelling.evaluate_model(model_results)
-    
-modelling.visualize_model(best_model, best_results, graph_title = "ERG 2D Featurized Dataset", y_test = y_test)
-
-
-print("\nAutomation complete! All results are saved.")
+if __name__ == "__main__":
+    app = hERGBlockerApp()
+    app.run()

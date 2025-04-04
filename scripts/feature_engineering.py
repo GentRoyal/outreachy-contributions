@@ -62,3 +62,31 @@ class Featurizer:
         except Exception as e:
             self.logger.error(f"Error during featurization for model {self.model_id}: {e}", exc_info=True)
             return None
+
+    def featurize_smiles(self, smiles):
+        """
+        Featurizes a single SMILES string using the specified Ersilia model.
+    
+        Args:
+            smiles (str): A SMILES string representing a molecule.
+    
+        Returns:
+            pd.DataFrame or None: A dataframe with the features, or None if featurization failed.
+        """
+        try:
+            t1 = time.time()
+            
+            self.logger.info(f"Loading Ersilia model: {self.model_id}")
+            model = ErsiliaModel(model = self.model_id)
+            model.serve()
+    
+            # Featurize the SMILES string
+            model.run(input = smiles, output = '../data/placeholder.csv')
+            X = pd.read_csv('../data/placeholder.csv')
+            X.drop(columns=['key', 'input'], inplace = True)
+            
+            return X
+    
+        except Exception as e:
+            self.logger.error(f"Error during featurization for SMILES with model {self.model_id}: {e}", exc_info=True)
+            return None
