@@ -195,8 +195,10 @@ This allowed me to compare how different settings affect performance.
 The configurations I used are:
 - Basic setup: No class weighting, no stratified K-Fold, and no hyperparameter tuning.
 - Class weighting only: Adjusts for class imbalance by giving more weight to the minority class.
-- Class weighting + Stratified K-Fold: Evaluates model performance more fairly by preserving class distribution in each fold.
-- Class weighting + GridSearchCV: Searches for the best hyperparameters while accounting for class imbalance.
+- Stratified K-Fold only 
+- GridSearchCV only
+- Class weighting + Stratified K-Fold
+- Class weighting + GridSearchCV
 
 It is worth noting that the dataset was splitted using scaffold method of split. 
 This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our model on new data instead of a random split.
