@@ -167,9 +167,11 @@ The train set is imbalanced (314 class 1 and 144 class 0), I addressed it by app
 - SMOTE
 - Hybrid sampler (SMOTE-EEN) 
 
-So, there are [four train sets](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/train_sets.png) in total (the original train set and the three sampled train sets)
-The imblearn.oversampler and SMOTE distribution appear to be the same but their methods of Oversampling are different
-The distributions of the original set and the hybrid set also appear to be the same but they have different shape and are not identical
+So, there are four train sets in total i.e. the original train set and the three sampled train sets.
+[The distributions of the sampling are attached here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/train_sets.png)
+
+- The imblearn.oversampler and SMOTE distribution appear to be the same but their methods of Oversampling are different (imblearn.oversampler samples the smaller class randomly while SMOTE sampling uses synthetic samples)
+- The distributions of the original set and the hybrid set also appear to be the same but they have different shape and are not identical
 ```bash
 print(np.array_equal(X_train, X_train_hybrid))  -> False 
 print(np.array_equal(y_train, y_train_hybrid))  -> False 
@@ -178,19 +180,23 @@ print("Hybrid shape:", X_train_hybrid.shape) -> Hybrid shape: (492, 1024)
 ```
 
 ### Further Preprocessing  
-- Dropped single-valued columns from the featurized sets.  
-- Scaled train, validation, and test features with `StandardScaler`.  
-- Applied the above sampling techniques to address class imbalance.
-  
-### Model Configurations
-- No class weighting, no stratified K-Fold, no grid search.  
-- Class weighting only (Adjusting for class imbalance).  
-- Class weighting with and without stratified K-Fold.  
-- Class weighting with and without GridSearchCV.
+- I dropped single-valued columns from the featurized sets.  
+- I scaled train, validation, and test features with `StandardScaler`.  
+- Then I applied the above sampling techniques to address class imbalance.
 
 ### Algorithms Used
 - XGBoostClassifier
 - RandomForestClassifier
+  
+### Algorithm Configurations
+Instead of training each model separately, I created a function that accepts different configurations and runs the models accordingly. 
+This allowed me to compare how different settings affect performance. 
+
+The configurations I used are:
+- Basic setup: No class weighting, no stratified K-Fold, and no hyperparameter tuning.
+- Class weighting only: Adjusts for class imbalance by giving more weight to the minority class.
+- Class weighting + Stratified K-Fold: Evaluates model performance more fairly by preserving class distribution in each fold.
+- Class weighting + GridSearchCV: Searches for the best hyperparameters while accounting for class imbalance.
 
 It is worth noting that the dataset was splitted using scaffold method of split. 
 This is because I think we stand a chance of making sure that similar molecules don’t mix between our training, validation and test sets if we use scaffold split. By that we are truly testing our model on new data instead of a random split.
