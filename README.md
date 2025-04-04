@@ -153,24 +153,24 @@ source ~/.bashrc
 ```
 Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
 
-** Option 1: Download Dataset**
+**Option 1: Download Dataset**
 Selecting this option downloads all hERG related datasets (hERG.csv, hERG.tab, train.csv, validation.csv, test.csv)
 
-** Option 2: Featurize Dataset**
+**Option 2: Featurize Dataset**
 Selecting this option lets you featurise a dataset. When this option is selected, the available featurisers (i.e eos5gu0 and eos2gw4) are displayed and you also get a prompt to enter the name of the file to featurise.
 It should be noted all input files should be placed inside the 'data' folder.
 
-** Option 3: Fill in Missing Drug Names:**
+**Option 3: Fill in Missing Drug Names:**
 Selecting this option looks through the Drug_ID column of a dataset for missing Drug IDs (i.e. the drug names) and fill these missing ID using the PUBCHEMPY and RDKIT libraries
 
-** Option 4. Generate Exploratory Data Analysis: **
+**Option 4. Generate Exploratory Data Analysis:**
 Selecting this option performs a bried exploratory data analysis on the hERG dataset. It creates visuals (The distribution of SMILE lengths and the class distribution) and also prints the number of drugs in each class.
 
-** Option 5. Assess Performance on Unseen Data: **
+**Option 5. Assess Performance on Unseen Data:**
 This option lets you run an already trained model on a new data to evaluate how the model performs on an unseen data. These models are the best models I got from each of the featuriser I applied.
 So, you get the option to select one of two and apply it to the new dataset. In the end, metrics like NPV, Specificity, ROC-AUC and accuracy score are displayed.
 
-** Option 6. Predict hERG Blocker Status: **
+**Option 6. Predict hERG Blocker Status:**
 This option lets you enter a SMILE, select a model and generate prediction if the SMILE is a hERG blocker or not. The probability is also displayed.
 
 ## Task 2: Featurisation
