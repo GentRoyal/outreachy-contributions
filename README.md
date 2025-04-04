@@ -206,13 +206,7 @@ So, there are four train sets in total i.e. the original train set and the three
 [The distributions of the sampling are attached here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/train_sets.png)
 
 - The imblearn.oversampler and SMOTE distribution appear to be the same but their methods of Oversampling are different (imblearn.oversampler samples the smaller class randomly while SMOTE sampling uses synthetic samples)
-- The distributions of the original set and the hybrid set also appear to be the same but they have different shape and are not identical
-```bash
-print(np.array_equal(X_train, X_train_hybrid))  -> False 
-print(np.array_equal(y_train, y_train_hybrid))  -> False 
-print("Original shape:", X_train.shape) -> Original shape: (404, 1024)
-print("Hybrid shape:", X_train_hybrid.shape) -> Hybrid shape: (492, 1024)
-```
+- The hybrid sampling combined oversampling and undersampling to retain a more representative dataset but it does not fully equalize the classes like SMOTE or random oversampling.
 
 ### Further Preprocessing  
 - I dropped single-valued columns from the featurized sets.  
