@@ -356,8 +356,8 @@ For the best ERG 2D model, I got this performance metric:
 
 
 ### Which model is the Best?
-In terms of NPV/Specificity trade-off, the first ErG 2D model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
-While in terms of ROC-AUC, the second ErG 2D model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
+In terms of NPV/Specificity trade-off, the first Ersilia Compound Embeddings model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
+While in terms of ROC-AUC, the second Ersilia Compound Embeddings model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
 
 I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the models' classification. 
 A model can have a good ROC-AUC but fail to capture the negative classes. Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.
