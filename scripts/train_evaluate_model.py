@@ -26,18 +26,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DatasetProcessor:
-    """
-    Handles dataset loading, preprocessing, scaling, and resampling.
-
-    Attributes:
-        splits (list): Dataset splits (e.g., ['train', 'validation', 'test']).
-        featuriser (str): Featurizer used for feature extraction.
-
-    Methods:
-        load_featurised_dataset(): Loads and processes featurized dataset splits.
-        get_scaled_set(train, test, val, target='Y'): Scales feature sets and removes low-variance columns.
-        preprocess_and_resample(target='Y'): Applies scaling and resampling (SMOTE, Oversampling, SMOTEENN).
-    """
+    """ Handles dataset loading, preprocessing, scaling, and resampling. """
     def __init__(self, splits, featuriser):
         self.splits = splits
         self.featuriser = featuriser
@@ -50,27 +39,34 @@ class DatasetProcessor:
         unnecessary columns ('key' and 'input'), and returns the processed datasets.
         
         Returns:
-            DataFrames: train, validation, test.
+            train, validation, test dataframes
         """
-        logger.info("Loading featurized dataset...")
+
+        logger.info("Checking for featurized dataset files...")
         
         featurised_splits = [
             f"../data/{split}_{self.featuriser}_featurized.csv" 
             for split in self.splits
         ]
-
-        datasets = ["train", "validation", "test"]
+        
+        # Check if all files exist
+        missing_files = [file for file in featurised_splits if not os.path.exists(file)]
+        
+        if missing_files:
+            logger.error("Featurized dataset not found. Please featurize the dataset first.")
+            for file in missing_files:
+                logger.error(f"Missing file: {file}")
+            return None, None, None
+        
         data_dict = {}
         
-        for i, name in enumerate(datasets):
+        for i, name in enumerate(self.splits):
             data_dict[name] = pd.read_csv(featurised_splits[i]).drop(columns=['key', 'input'])
             logger.info(f"{name.capitalize()} dataset loaded and processed.")
         
         train, validation, test = data_dict["train"], data_dict["validation"], data_dict["test"]
-
         return train, validation, test
-
-
+        
     def get_scaled_set(self, train, test, val, target='Y'):
         """
         Scale the feature sets and return the processed training, validation, and test datasets.
@@ -82,21 +78,21 @@ class DatasetProcessor:
             target (str): The column name of the target variable. Default is 'Y'.
     
         Returns:
-            Arrays: Scaled feature matrices and target variables for train, test, and validation sets.
+            Scaled feature matrices and target variables for train, test, and validation sets.
         """
         logger.info("Scaling feature sets...")
     
         def clean_data(X, y):
             """Removes all-zero or NaN rows and updates y accordingly."""
-            X = X[(X != 0).any(axis=1) & X.notna().any(axis=1)]
+            X = X[(X != 0).any(axis = 1) & X.notna().any(axis = 1)]
             y = y.loc[X.index]
             
             return X, y
     
         # Extract features and target
-        X_train, y_train = clean_data(train.drop(columns=[target]), train[target])
-        X_test, y_test = clean_data(test.drop(columns=[target]), test[target])
-        X_val, y_val = clean_data(val.drop(columns=[target]), val[target])
+        X_train, y_train = clean_data(train.drop(columns = [target]), train[target])
+        X_test, y_test = clean_data(test.drop(columns = [target]), test[target])
+        X_val, y_val = clean_data(val.drop(columns = [target]), val[target])
     
         # Identify and remove zero-variance columns
         zero_columns = X_train.columns[X_train.nunique() == 1].tolist()
@@ -126,63 +122,43 @@ class DatasetProcessor:
             target (str): The column name of the target variable. Default is 'Y'.
         
         Returns:
-            tuple: Processed and resampled datasets including:
-                - Original train, test, and validation sets (scaled)
-                - SMOTE-resampled train set
-                - Random oversampled train set
-                - Hybrid (SMOTE + ENN) resampled train set
+            Scaled and resampled datasets including:
+            - Original train, test, and validation sets
+            - SMOTE-resampled train set
+            - Random oversampled train set
+            - Hybrid (SMOTE + ENN) resampled train set
         """
         logger.info("Starting dataset preprocessing and resampling...")
         train, validation, test = self.load_featurised_dataset()
 
-        logger.info("Feature preparation completed.")
+        if all(x is not None for x in [train, validation, test]):
         
-        X_train, y_train, X_test, y_test, X_val, y_val = self.get_scaled_set(train, test, validation, target = target)
-        logger.info("Feature scaling completed.")
-        
-        smote = SMOTE(random_state=42)
-        X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
-        logger.info("SMOTE resampling completed.")
-        
-        oversampler = RandomOverSampler(random_state=42) # Random Oversampling
-        X_train_over, y_train_over = oversampler.fit_resample(X_train, y_train)
-        logger.info("Random Oversampling completed.")
-        
-        smote_enn = SMOTEENN(random_state=42) # Hybrid (SMOTE + ENN)
-        X_train_hybrid, y_train_hybrid = smote_enn.fit_resample(X_train, y_train)
-        logger.info("SMOTE + ENN Hybrid Resampling completed.")
+            X_train, y_train, X_test, y_test, X_val, y_val = self.get_scaled_set(train, test, validation, target = target)
+            logger.info("Feature scaling completed.")
+            
+            smote = SMOTE(random_state=42)
+            X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
+            logger.info("SMOTE resampling completed.")
+            
+            oversampler = RandomOverSampler(random_state=42) # Random Oversampling
+            X_train_over, y_train_over = oversampler.fit_resample(X_train, y_train)
+            logger.info("Random Oversampling completed.")
+            
+            smote_enn = SMOTEENN(random_state=42) # Hybrid (SMOTE + ENN)
+            X_train_hybrid, y_train_hybrid = smote_enn.fit_resample(X_train, y_train)
+            logger.info("SMOTE + ENN Hybrid Resampling completed.")
+    
+            logger.info("Preprocessing and resampling completed successfully.")
 
-        logger.info("Preprocessing and resampling completed successfully.")
+        else:
+            X_train = y_train = X_test = y_test = X_val = y_val = X_train_smote = y_train_smote = X_train_over = y_train_over = X_train_hybrid = y_train_hybrid = None
+            logger.info("Please featurize the dataset first.")
 
-        return (X_train, y_train, 
-                X_test, y_test, 
-                X_val, y_val, 
-                X_train_smote, y_train_smote, 
-                X_train_over, y_train_over,
-                X_train_hybrid, y_train_hybrid
-               )
+        return X_train, y_train, X_test, y_test, X_val, y_val, X_train_smote, y_train_smote, X_train_over, y_train_over, X_train_hybrid, y_train_hybrid
 
 class Modelling:
-    """
-    A class for training, evaluating, and visualizing machine learning models.
+    """A class for training, evaluating, and visualizing machine learning models (RandomForest and XGBoost)."""
     
-    Methods:
-        train_model: Trains a RandomForest or XGBoost classifier with optional configurations (model_config).
-            Example:
-                model, model_result = modelling.train_model(
-                    'randomforest',  # or 'xgboost'
-                    X_train, y_train, X_test, y_test, X_val, y_val,
-                    class_weight=True, #or False
-                    use_stratified_kfold=True, #or False
-                    use_gridsearch=True #or False
-                )
-
-        evaluate_model: Selects the best model based on ROC-AUC score.
-        visualize_model: Generates performance visualizations.
-        model_config: Configures and returns model settings.
-        compute_metrics: Computes classification metrics.
-    """
-
     def train_model(self, model_type, X_train, y_train, X_test, y_test, X_val, y_val, 
                     class_weight=False, use_stratified_kfold=False, use_gridsearch=False):
         """
@@ -318,11 +294,11 @@ class Modelling:
         Evaluate multiple models and select the one with the highest ROC-AUC score.
         
         Parameters:
-        model_results (dict): A dictionary where keys are model names and values are dictionaries
+            model_results (dict): A dictionary where keys are model names and values are dictionaries
                               containing test metrics, including 'roc_auc'.
         
         Returns:
-        tuple: The best model and its corresponding results based on the highest ROC-AUC score.
+            Tuple: The best model and its corresponding results based on the highest ROC-AUC score.
         """
         best_roc_auc = 0
         model = None
@@ -344,17 +320,17 @@ class Modelling:
         Visualizes the performance of a given model using various metrics and plots.
 
         Parameters:
-        - model: The trained machine learning model.
-        - model_results (dict): Dictionary containing training, validation, and test metrics.
-        - graph_title (str): Title for the plots.
-        - y_test (array-like): True labels for the test set.
+            - model: The trained machine learning model.
+            - model_results (dict): Dictionary containing training, validation, and test metrics.
+            - graph_title (str): Title for the plots.
+            - y_test (array-like): True labels for the test set.
 
         Generates:
-        - ROC Curve
-        - Precision-Recall Curve
-        - Confusion Matrix
-        - Feature Importance (if applicable)
-        - Prints tabular performance metrics
+            - ROC Curve
+            - Precision-Recall Curve
+            - Confusion Matrix
+            - Feature Importance (if applicable)
+            - Prints tabular performance metrics
         """
         save_path = f"../data/figures/"
         
@@ -373,7 +349,8 @@ class Modelling:
         print(tabulate.tabulate(df, headers = 'keys', tablefmt = 'grid'))
 
         fpr, tpr, _ = roc_curve(y_test, model_results["y_test_proba"])
-        
+
+        # ROC Curve
         plt.figure(figsize=(6, 4))
         plt.plot(fpr, tpr, label=f"ROC Curve (AUC = {best_roc_auc:.4f})")
         plt.plot([0, 1], [0, 1], linestyle="--", color="gray")
@@ -390,6 +367,7 @@ class Modelling:
         precision_curve = model_results["precision_curve"]
         recall_curve = model_results["recall_curve"]
         
+        # Precision-Recall Curve
         plt.figure(figsize=(6, 4))
         plt.plot(recall_curve, precision_curve, label="Precision-Recall Curve")
         plt.xlabel("Recall")
@@ -410,7 +388,8 @@ class Modelling:
         npv = TN / (TN + FN) 
         
         logger.info(f"Specificity: {specificity:.4f}, Negative Predictive Value: {npv:.4f}")
-        
+
+        # Confusion Matrix
         plt.figure(figsize=(6, 4))
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=["No Blockage", "Blockage"], yticklabels=["No Blockage", "Blockage"])
         plt.xlabel("Predicted Label")
@@ -421,7 +400,8 @@ class Modelling:
         plt.savefig(cm_path)
         plt.show()
         logger.info(f"Confusion Matrix saved at {cm_path}")
-    
+
+        # Feature_importances
         if hasattr(model, "feature_importances_"):
             feature_importances = model.feature_importances_
             feature_names = [f"Feature {i}" for i in range(len(feature_importances))]
@@ -448,14 +428,14 @@ class Modelling:
         Prepares different training datasets and model configurations for experimentation.
 
         Parameters:
-        - X_train, y_train: Original training dataset.
-        - X_train_over, y_train_over: Oversampled training dataset.
-        - X_train_smote, y_train_smote: SMOTE-generated training dataset.
-        - X_train_hybrid, y_train_hybrid: Hybrid resampled training dataset.
+            - X_train, y_train: Original training dataset.
+            - X_train_over, y_train_over: Oversampled training dataset.
+            - X_train_smote, y_train_smote: SMOTE-generated training dataset.
+            - X_train_hybrid, y_train_hybrid: Hybrid resampled training dataset.
 
         Returns:
-        - train_sets (dict): A dictionary containing different training datasets.
-        - configs (list): A list of model configuration dictionaries.
+            - train_sets (dict): A dictionary containing different training datasets.
+            - configs (list): A list of model configuration dictionaries.
         """
         train_sets = {
             "Original Set": (X_train, y_train),
@@ -500,62 +480,114 @@ class Modelling:
                 "roc_auc": roc_auc
             }
     
-    def apply_trained_model(self, data, featuriser):
-        
-        logger.info("Applying the trained model to dataset...")
-        featurizer = Featurizer(model_id = featuriser)
-        output_path = featurizer.featurize(input_file = data)
-        
-        with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
-            model = pkl.load(f)
-
-        X = pd.read_csv(output_path)
-        y = X['Y']
-        X.drop(columns=['key', 'input', 'Y'], inplace = True)
-        if featuriser == 'eos5guo':
-            X.drop(columns = ['dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223', 
-                              'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301', 
-                              'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310', 
-                              'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'], inplace = True)
-        y_pred = model.predict(X)
-        y_proba = model.predict_proba(X)[:, 1]
-
-        tn, fp, fn, tp = confusion_matrix(y, y_pred).ravel()
-
-        accuracy = (tp + tn)/(tp + tn + fp + fn)
-        specificity = tn / (tn + fp)  
-        npv = tn / (tn + fn) 
-        roc_auc = roc_auc_score(y, y_proba)
-
-        # Tabulate results
-        metrics_table = [
-            ["Accuracy", accuracy],
-            ["Specificity", specificity],
-            ["Negative Predictive Value (NPV)", npv],
-            ["ROC-AUC", roc_auc]
-        ]
+    def apply_trained_model(self, file, featuriser):
+        """
+        Apply a trained model to a given dataset, perform prediction, and evaluate model performance.
     
-        print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))
+        Parameters:
+            file : The name of the input file (without the file extension) that contains the dataset to be processed.
+            featuriser : The identifier for the featurizer used to process the dataset (e.g., 'eos5guo' or 'eos2gw4').
+        
+        Returns: None
+            Prints a table of performance metrics for the applied model, including Accuracy, Specificity, 
+            Negative Predictive Value (NPV), and ROC-AUC score.
+        """
+        try:
+            output_path = f'../data/{file}_{featuriser}_featurized.csv'
+            
+            logger.info("Applying the trained model to dataset...")
+            if not os.path.exists(output_path):
+                featurizer = Featurizer(model_id = featuriser)
+                output_path = featurizer.featurize_csv(input_file = file)
+            
+            with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
+                model = pkl.load(f)
+    
+            X = pd.read_csv(output_path)
+            y = X['Y']
+            X.drop(columns=['key', 'input', 'Y'], inplace = True)
+            
+            if featuriser == 'eos5guo':
+                cols_to_drop = [
+                        'dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223',
+                        'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301',
+                        'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310',
+                        'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'
+                    ]
+                X.drop(columns=cols_to_drop, inplace=True)
+                logger.info("Dropped extra dimensions for eos5guo featuriser")
+            
+            y_pred = model.predict(X)
+            y_proba = model.predict_proba(X)[:, 1]
+
+            tn, fp, fn, tp = confusion_matrix(y, y_pred).ravel()
+
+            accuracy = (tp + tn)/(tp + tn + fp + fn)
+            specificity = tn / (tn + fp)  
+            npv = tn / (tn + fn) 
+            roc_auc = roc_auc_score(y, y_proba)
+    
+            # Tabulate results
+            metrics_table = [
+                ["Accuracy", accuracy],
+                ["Specificity", specificity],
+                ["Negative Predictive Value (NPV)", npv],
+                ["ROC-AUC", roc_auc]
+            ]
+        
+            print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))
+        except Exception as e:
+            logger.error(f"Error Applying Model: {e}")
 
     def make_predictions(self, X, featuriser):
-        
-        logger.info("Making Prediction...")
-        
-        with open(f"../models/best_{featuriser}_model.pkl", "rb") as f:
-            model = pkl.load(f)
-
-        if featuriser == 'eos5guo':
-            X.drop(columns = ['dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223', 
-                              'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301', 
-                              'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310', 
-                              'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'], inplace = True)
-        y_pred = model.predict(X)
-        y_proba = model.predict_proba(X)[:, 1]
-
-        # Tabulate results
-        metrics_table = [
-            ["Prediction", "Herg Blocker" if y_pred == 1 else "Not Herg Blocker"],
-            ["Probability", y_proba]
-        ]
+        """
+        Make predictions on a given dataset using a pre-trained model.
     
-        print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))
+        Parameters:
+            X : The featuris=zed dataset on which predictions will be made.
+            featuriser : The identifier for the featurizer whose best model is to be loaded
+    
+        Returns: None
+            Prints a table of predictions and probabilities for the input dataset, including the 
+            predicted class ("Herg Blocker" or "Not Herg Blocker") and the associated probability.
+        """
+        try:
+            logger.info("Making Prediction...")
+
+            model_path = f"../models/best_{featuriser}_model.pkl"
+            
+            if not os.path.exists(model_path):
+                logger.error(f"Model file not found at {model_path}")
+                return
+
+            with open(model_path, "rb") as f:
+                model = pkl.load(f)
+                logger.info(f"Model loaded successfully from {model_path}")
+
+            if featuriser == 'eos5guo':
+                cols_to_drop = [
+                        'dimension_179', 'dimension_180', 'dimension_181', 'dimension_218', 'dimension_219', 'dimension_220', 'dimension_221', 'dimension_222', 'dimension_223',
+                        'dimension_235', 'dimension_236', 'dimension_295', 'dimension_296', 'dimension_297', 'dimension_298', 'dimension_299', 'dimension_300', 'dimension_301',
+                        'dimension_302', 'dimension_303', 'dimension_304', 'dimension_305', 'dimension_306', 'dimension_307', 'dimension_308', 'dimension_309', 'dimension_310',
+                        'dimension_311', 'dimension_312', 'dimension_313', 'dimension_314'
+                    ]
+                X.drop(columns=cols_to_drop, inplace=True)
+                logger.info("Dropped extra dimensions for eos5guo featuriser")
+                
+            try:
+                y_pred = model.predict(X)
+                y_proba = model.predict_proba(X)[:, 1]
+            except Exception as e:
+                logger.error("Error while making prediction")
+                return
+
+            # Tabulate results
+            metrics_table = [
+                ["Prediction", "Herg Blocker" if y_pred == 1 else "Not Herg Blocker"],
+                ["Probability", y_proba]
+            ]
+        
+            print(tabulate.tabulate(metrics_table, headers=["Metric", "Value"], tablefmt="grid"))
+
+        except Exception as e:
+            logger.error(f"Error during prediction: {e}", exc_info=True)

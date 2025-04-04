@@ -29,12 +29,13 @@ class ExploratoryDataAnalysis:
         Generates and saves EDA visualizations if the dataset exists.
         """
         try:
-            if not os.path.abspath(self.data_path):
+            if not os.path.exists(self.data_path):
                 self.logger.error(f"Dataset not found: {self.data_path}")
                 return None
-
             
             df = pd.read_csv(self.data_path)
+            self.logger.info(f"Dataset loaded from {os.path.abspath(self.data_path)}")
+
 
             os.makedirs(self.figure_dir, exist_ok=True)
             self.logger.info(f"Figure directory verified at: {os.path.abspath(self.figure_dir)}")

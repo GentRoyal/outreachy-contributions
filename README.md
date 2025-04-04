@@ -16,7 +16,7 @@ I must say that this wasn't the project I selected initially, I selected [DrugRe
 | **Y**         | Binary classification, 0: Not Blocker, 1: Blocker       |
 | **Metric** | pIC50 (no unit) |
 
-There were 22 missing values in the `Drug_ID` column and I filled the missing values by combining the pubchempy and rdkit libraries. I started by extracting the molecule formula from the SMILES. This was then used to find the chemical formula and by extension, the drug name.
+There were 22 missing values in the `Drug_ID` column and I filled the missing values by combining the PUBCHEMPY and RDKIT libraries. I started by extracting the molecule formula from the SMILES. This was then used to find the chemical formula and by extension, the drug name.
 
 All through the project, I use a logger to log the process and the following is an extract
 ```bash
@@ -51,6 +51,7 @@ The sample drug structures can be found [here](https://github.com/GentRoyal/outr
 ├── validation_{featurizer_code}_featurised.csv
 ├── test_{featurizer_code}_featurised.csv
 ├── placeholder.csv # Placeholder for featurized SMILE during predictions
+├── unseen_data.csv # Contains the new compounds used to evaluate the models' performance
 ├
 ├── models/             # Saved machine learning models (pickle file)
 ├── best_eos2gw4_model.pkl 
@@ -67,6 +68,11 @@ The sample drug structures can be found [here](https://github.com/GentRoyal/outr
 ├── requirements.txt    # Project dependencies
 └── README.md           # Project documentation
 ```
+### File Naming Convention
+To maintain consistency and clarity for featurised files, I used a the convention [filename_{featurizer_code}_featurised.csv]
+Take for instance when I featurise train.csv file using ErG 2D featuriser (eos5gu0), the featurised file would become named train_eos5gu0_featurised.csv
+I did this to make sure that each dataset can be identified easily and that the file names are uniform across all splits of the dataset.
+
 ### SMILES Format
 
 | Aspect  | Details |
@@ -112,31 +118,60 @@ cd outreachy-contribution
 ```
 
 #### How to Run
-**Method 1: Automation Script**
 ```bash
 cd scripts
 python main.py
 ```
 - Follow Prompt to interact
 ```
-hERG Blocker Prediction Application!
-
-===== hERG BLOCKER PREDICTION =====
-1. Load Dataset
-2. Featurize Dataset
-3. Generate Exploratory Data Analysis
-4. Assess Performance on Unseen Data
-5. Predict hERG Blocker Status
-6. Exit
-
-Select an option (1-6):
-```
+==================================================
+             hERG BLOCKER PREDICTION SYSTEM
+==================================================
+ NOTE: All input files should be placed inside the 'data' folder.
+==================================================
+ INSTRUCTIONS:
+ You can featurize compounds using any of the following:
+  - eos5gu0  ->  ERG 2D Featurizer
+  - eos2gw4  ->  Ersilia Compound Embeddings
+ The best-performing model for each featurizer can be used to generate
+ predictions or assess performance on unseen data.
+==================================================
+ 1. Download Dataset
+ 2. Featurize Dataset
+ 3. Fill in Missing Drug Names
+ 4. Generate Exploratory Data Analysis
+ 5. Assess Performance on Unseen Data
+ 6. Predict hERG Blocker Status
+ 7. Exit
+==================================================
+ Please select an option (1-7):
+ ```
 - Note: For WSL users experiencing Matplotlib crashes, set Qt platform:
 ```bash
 echo 'export QT_QPA_PLATFORM=offscreen' >> ~/.bashrc
 source ~/.bashrc
 ```
 Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
+
+** Option 1: Download Dataset**
+Selecting this option downloads all hERG related datasets (hERG.csv, hERG.tab, train.csv, validation.csv, test.csv)
+
+** Option 2: Featurize Dataset**
+Selecting this option lets you featurise a dataset. When this option is selected, the available featurisers (i.e eos5gu0 and eos2gw4) are displayed and you also get a prompt to enter the name of the file to featurise.
+It should be noted all input files should be placed inside the 'data' folder.
+
+** Option 3: Fill in Missing Drug Names:**
+Selecting this option looks through the Drug_ID column of a dataset for missing Drug IDs (i.e. the drug names) and fill these missing ID using the PUBCHEMPY and RDKIT libraries
+
+** Option 4. Generate Exploratory Data Analysis: **
+Selecting this option performs a bried exploratory data analysis on the hERG dataset. It creates visuals (The distribution of SMILE lengths and the class distribution) and also prints the number of drugs in each class.
+
+** Option 5. Assess Performance on Unseen Data: **
+This option lets you run an already trained model on a new data to evaluate how the model performs on an unseen data. These models are the best models I got from each of the featuriser I applied.
+So, you get the option to select one of two and apply it to the new dataset. In the end, metrics like NPV, Specificity, ROC-AUC and accuracy score are displayed.
+
+** Option 6. Predict hERG Blocker Status: **
+This option lets you enter a SMILE, select a model and generate prediction if the SMILE is a hERG blocker or not. The probability is also displayed.
 
 ## Task 2: Featurisation
 The choice of Featuriser for this project are based on two criterions
@@ -277,7 +312,7 @@ ErG 2D Description model has high NPV (87.50%), meaning that the model gets 87.5
 
 The Ersilia Compound Embeddings model on the other hand has lower NPV (55.81%) but higher specificity (63.16%), meaning it's better at correctly identifying drugs that are not blockers compared.
 
-Using my trade-off, I would give priority to minimizing the risk of missing a dangerous hERG blocker, so I’d choose the Ersilia Compound Embeddings model. Even though its NPV is lower, its higher specificity makes it better at avoiding the false negative that could lead to serious health risks.
+Using my trade-off, I gave priority to minimizing the risk of missing a dangerous hERG blocker, so I chose the Ersilia Compound Embeddings model. Even though its NPV is lower, its higher specificity makes it better at avoiding the false negative that could lead to serious health risks.
 
 I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms of the [ROC AUC](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ersilia_embedding_roc_auc_second.png).
 | Metric          | Train  | Validation   | Test    |

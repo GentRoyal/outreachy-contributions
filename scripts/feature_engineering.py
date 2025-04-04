@@ -5,11 +5,9 @@ from pathlib import Path
 from ersilia import ErsiliaModel 
 
 class Featurizer:
-    def __init__(self, model_id, dataset_dir="../data/", log_dir="../logs/"):
+    def __init__(self, model_id, dataset_dir="../data/"):
         self.model_id = model_id
         self.dataset_dir = Path(dataset_dir)
-        self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -17,7 +15,7 @@ class Featurizer:
         handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(handler)
 
-    def featurize(self, input_file):
+    def featurize_csv(self, input_file):
         """
         Featurizes the input CSV using the specified Ersilia model.
 
@@ -41,13 +39,15 @@ class Featurizer:
             self.logger.info(f"Loading Ersilia model: {self.model_id}")
             model = ErsiliaModel(model = self.model_id)
             model.serve()
-            model.run(input=str(input_file_path), output=str(output_file_path))
+            self.logger.info("Model served successfully")
+            
+            model.run(input = str(input_file_path), output = str(output_file_path))
 
             featurized_df = pd.read_csv(output_file_path)
 
             path = self.dataset_dir / f'{input_file}.csv'
             if not path.exists():
-                self.logger.warning(f"hERG dataset not found: {path}")
+                self.logger.warning(f"Dataset not found: {path}")
             else:
                 df = pd.read_csv(path)
                 featurized_df = featurized_df.merge(df[["Drug", "Y"]], left_on="input", right_on="Drug", how="inner")
@@ -68,7 +68,7 @@ class Featurizer:
         Featurizes a single SMILES string using the specified Ersilia model.
     
         Args:
-            smiles (str): A SMILES string representing a molecule.
+            smiles: A SMILES string representing a molecule.
     
         Returns:
             pd.DataFrame or None: A dataframe with the features, or None if featurization failed.
@@ -79,12 +79,17 @@ class Featurizer:
             self.logger.info(f"Loading Ersilia model: {self.model_id}")
             model = ErsiliaModel(model = self.model_id)
             model.serve()
+            self.logger.info("Model served successfully")
     
             # Featurize the SMILES string
             model.run(input = smiles, output = '../data/placeholder.csv')
+            
             X = pd.read_csv('../data/placeholder.csv')
             X.drop(columns=['key', 'input'], inplace = True)
-            
+
+            time_taken = time.time() - t1
+            self.logger.info(f"Featurization completed in {time_taken:.2f}s for {smiles}")
+                        
             return X
     
         except Exception as e:
