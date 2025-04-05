@@ -496,7 +496,7 @@ class Modelling:
             output_path = f'../data/{file}_{featuriser}_featurized.csv'
             
             logger.info("Applying the trained model to dataset...")
-            if not os.path.exists(output_path):
+            if not os.path.exists(output_path): #Only featurise files that have not been previously featurised
                 featurizer = Featurizer(model_id = featuriser)
                 output_path = featurizer.featurize_csv(input_file = file)
             

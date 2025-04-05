@@ -22,7 +22,7 @@ class hERGBlockerApp:
         self.best_model = None
         
     def display_menu(self):
-        """Display the main menu options with improved design and instructions"""
+        """Display the Main Menu Options"""
         print("\n" + "=" * 50)
         print("             hERG BLOCKER PREDICTION SYSTEM")
         print("=" * 50)
@@ -130,12 +130,9 @@ class hERGBlockerApp:
             
         print("\n===== APPLY TRAINED MODEL =====")
         
-        #try:
         file_name = input("Enter a filename: ")
         modelling = Modelling() 
         modelling.apply_trained_model(file_name, self.current_featuriser)
-            
-        #except Exception as e: print(f"\nError applying trained model: {e}")
         
     def predict_herg_blocker(self):
         """Predict if a drug is a hERG blocker or not"""
