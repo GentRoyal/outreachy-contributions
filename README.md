@@ -154,31 +154,19 @@ source ~/.bashrc
 ```
 Although this project runs the hERG dataset, it is capable of doing the same operations on the following datasets {'LD50_Zhu', 'ClinTox', 'Carcinogens_Lagunin', 'Skin Reaction', 'AMES', 'hERG', 'hERG_Karim', 'DILI'}, if I lift the restriction on inputs.
 
-**Option 1: Download Dataset**
+**Option 1: Download Dataset: ** Selecting this option downloads all hERG related datasets (hERG.csv, hERG.tab, train.csv, validation.csv, test.csv)
 
-Selecting this option downloads all hERG related datasets (hERG.csv, hERG.tab, train.csv, validation.csv, test.csv)
+**Option 2: Featurize Dataset: ** Selecting this option lets you featurise a dataset. When this option is selected, the available featurisers (i.e eos5gu0 and eos2gw4) are displayed and you also get a prompt to enter the name of the file to featurise.
 
-**Option 2: Featurize Dataset**
+**Option 3: Fill in Missing Drug Names: ** Selecting this option looks through the Drug_ID column of a dataset for missing Drug IDs (i.e. the drug names) and fill these missing ID using the PUBCHEMPY and RDKIT libraries
 
-Selecting this option lets you featurise a dataset. When this option is selected, the available featurisers (i.e eos5gu0 and eos2gw4) are displayed and you also get a prompt to enter the name of the file to featurise.
+**Option 4. Generate Exploratory Data Analysis: ** Selecting this option performs a bried exploratory data analysis on the hERG dataset. It creates visuals (The distribution of SMILE lengths and the class distribution) and also prints the number of drugs in each class.
 
-It should be noted all input files should be placed inside the 'data' folder.
-
-**Option 3: Fill in Missing Drug Names:**
-
-Selecting this option looks through the Drug_ID column of a dataset for missing Drug IDs (i.e. the drug names) and fill these missing ID using the PUBCHEMPY and RDKIT libraries
-
-**Option 4. Generate Exploratory Data Analysis:**
-
-Selecting this option performs a bried exploratory data analysis on the hERG dataset. It creates visuals (The distribution of SMILE lengths and the class distribution) and also prints the number of drugs in each class.
-
-**Option 5. Assess Performance on Unseen Data:**
-
-This option lets you run an already trained model on a new data to evaluate how the model performs on an unseen data. These models are the best models I got from each of the featuriser I applied.
-
-So, you get the option to select one of two and apply it to the new dataset. In the end, metrics like NPV, Specificity, ROC-AUC and accuracy score are displayed.
+**Option 5. Assess Performance on Unseen Data: ** This option lets you run an already trained model on a new data to evaluate how the model performs on an unseen data. These models are the best models I got from each of the featuriser I applied. So, you get the option to select one of two and apply it to the new dataset. In the end, metrics like NPV, Specificity, ROC-AUC and accuracy score are displayed.
 
 **Option 6. Predict hERG Blocker Status:**
+
+**Option 7. Exit the Application:** This option ends the running of the application.
 
 This option lets you enter a SMILE, select a model and generate prediction if the SMILE is a hERG blocker or not. The probability is also displayed.
 
@@ -287,7 +275,8 @@ The 18.42% means that the remaining 81.58% were drugs that can block the hERG bu
 
 So, we need to find a way to improve the model's specificity or train another model.
 I also included a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20ErG%202D%20Descriptors.png) to highlight key predictors.
-I need to point at this point that the featuriser does not return descriptive names as the column names except for a few, so it's difficult to say what each feature represents.
+
+I need to say at this point that the featurisers did not return descriptive names as the column names except for a few, so it's difficult to say what each feature represents.
 If we can get the descriptive feature names, the feature importance visual would be more interpretable.
 
 ### Comparison with other Featuriser
@@ -307,13 +296,9 @@ Similarly, I the same figures I created for the ErG 2D model; a [confusion matri
 
 To decide which model is better, I used a trade-off of which poses more risk "misclassifying a drug as hERG blocker or misclassifying a drug as not" i.e. False Positive vs False Negative
 
-**False Negative (misclassifying a hERG blocker as not a blocker)**
+**False Negative (misclassifying a hERG blocker as not a blocker): ** To the best of my knowledge, this is more dangerous. A drug that is a hERG blocker could cause serious heart issues, and misclassifying it as not can cause serious health issues.
 
-To the best of my knowledge, this is more dangerous. A drug that is a hERG blocker could cause serious heart issues, and misclassifying it as not can cause serious health issues.
-
-**False Positive (misclassifying a non-hERG blocker as a blocker)**
-
-This is a serious error too but I think the error is less risky. The worse that could happen here could be delaying the approval of the drug before it is considered safe, but it doesn’t pose a direct health risk.
+**False Positive (misclassifying a non-hERG blocker as a blocker): ** This is a serious error too but I think the error is less risky. The worse that could happen here could be delaying the approval of the drug before it is considered safe, but it doesn’t pose a direct health risk.
 
 Now using this as a benchmark, I can now compare the two models:
 ErG 2D Description model has high NPV (87.50%), meaning that the model gets 87.50% of the no blockage classifications correctly which is quite good, but it has low specificity (18.42%), meaning that the model only gets 18.42% of actual non-hERG blockers. 
