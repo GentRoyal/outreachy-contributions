@@ -31,7 +31,7 @@ We need to address this imbalance because it is important before training and ev
 The label distribution can be found [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/label_distribution.png)
 
 ### SMILES Length Distribution
-Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/smiles_length.png), where most molecules have SMILES lengths around 30 and 80 characters.
+Also, when we look at the length of these SMILES strings, we see that it varies significantly. This is plotted [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/smiles_length.png), where most molecules have SMILES lengths around 30 to 70 characters.
 
 ### Sample Drug Structures
 To better understand the dataset, I visualized some molecular structures of drugs in the dataset. This visualization can help in analyzing the chemical properties of hERG blockers and non-blockers.
@@ -51,7 +51,7 @@ The sample drug structures can be found [here](https://github.com/GentRoyal/outr
 ├── validation_{featurizer_code}_featurised.csv
 ├── test_{featurizer_code}_featurised.csv
 ├── placeholder.csv # Placeholder for featurized SMILE during predictions
-├── unseen_data.csv # Contains the new compounds used to evaluate the models' performance
+├── new_compounds.csv # Contains the new compounds used to evaluate the models' performance
 ├
 ├── models/             # Saved machine learning models (pickle file)
 ├── best_eos2gw4_model.pkl 
@@ -278,8 +278,8 @@ This is because I think we stand a chance of making sure that similar molecules 
 | F1-Score       | 89.97%  | 83.33%       | 86.32%  |
 | ROC AUC        | 95.40%  | 79.57%       | 82.24%  |
 
-I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ErG%202D%20Descriptors.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ErG%202D%20Descriptors.png) which shows the trade-off between precision and recall. But this isn't a good visual to focus on because the graph is more relevant when we need to identify more positive cases (blockers).
-But in this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ErG%202D%20Descriptors.png) to assess classification quality.
+I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ErG%202D%20Descriptors.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ErG%202D%20Descriptors.png) which shows the trade-off between precision and recall. But the precision-recall curve is not my focus because this graph is more relevant when we need to identify more positive cases (blockers).
+In this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ErG%202D%20Descriptors.png) to assess classification quality, combined with the confusion matrix.
 The ROC-AUC curve shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the confusion matrix.
 
 The 87.50% negative predictive value means the model gets 87.50% of the no blockage classifications correctly which is quite good but the 18.42% specificity means the model really struggle to classify negative class (No Blockage), which is very low.
@@ -331,7 +331,17 @@ I expanded my GridSearchCV hyperparemeters, and I got a better metric in terms o
 | F1_Score        | 97.97%              | 88.79%           | 82.11%             |
 | ROC_AUC         | 99.82%              | 78.36%            | 89.43%             |
 
-But this came at a price, the [specificity](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ersilia_embedding_confusion_matrix_second.png) reduced to 44.00% and the NPV increased to 78.57%
+But this came at a price, the specificity according to the [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ersilia_embedding_confusion_matrix_second.png) reduced to 44.00% and the NPV increased to 78.57%.
+A reduced specificity of 44.00% means that the model cannot correctly classify negative classes as well as the previous model with a better specificity of 63.16%
+
+### So, which model is the Best and Why?
+In terms of NPV/Specificity trade-off, the first Ersilia Compound Embeddings model performed better than all other models. It had a specificity of 63.16% and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
+While in terms of ROC-AUC, the second Ersilia Compound Embeddings model performed better than all other models with a ROC-AUC of 89.43% and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
+
+I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the models' classification quality. 
+A model can have a good ROC-AUC but fail to capture the negative classes. Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.
+
+My conclusion is that the model that gave me the best specificity (i.e. the first Ersilia Compound Embeddings model) is the best model because it performed well with the negative class and it also has a good ROC-AUC of 82.56%.
 
 ### Performance on unseen data
 I did got additional data from [hERG blocker/non-blocker datasets](https://weilab.math.msu.edu/DataLibrary/2D/Downloads/hERG-classification.zip), it's a zip file that contains 7 other zipped files, all of which can be used to validate my model.
@@ -341,23 +351,19 @@ I ran the Ersilia Compound Embeddings model on the extracted compounds and this 
 
 | **Metric**                          |    **Value** |
 |--------------------------|--------------------|
-| Accuracy                        | 0.513514 |
-| Specificity                     | 1        |
-| Negative Predictive Value (NPV) | 0.513514 |
-| ROC-AUC                         | 0.804094 |
+| Accuracy                        | 51.35% |
+| Specificity                     | 100%        |
+| Negative Predictive Value (NPV) | 51.35% |
+| ROC-AUC                         | 80.41% |
 
 For the best ERG 2D model, I got this performance metric:
 | **Metric**                          |    **Value** |
 |--------------------------|--------------------|
-| Accuracy                        | 0.594595 |
-| Specificity                     | 1        |
-| Negative Predictive Value (NPV) | 0.558824 |
-| ROC-AUC                         | 0.751462 |
+| Accuracy                        | 59.46% |
+| Specificity                     | 100%        |
+| Negative Predictive Value (NPV) | 55.88% |
+| ROC-AUC                         | 75.15% |
 
-
-### Which model is the Best?
-In terms of NPV/Specificity trade-off, the first Ersilia Compound Embeddings model performed better than all other models and I'd give preference to this model than others because the class distribution is imbalance and a model that works well with the negative class should be given preference.
-While in terms of ROC-AUC, the second Ersilia Compound Embeddings model performed better than all other models and it even performed better than current [leaderboard](https://tdcommons.ai/benchmark/admet_group/hERG)
-
-I think the ROC-AUC shouldn't be used solely as the metric for this project because it does not give the complete picture of the models' classification. 
-A model can have a good ROC-AUC but fail to capture the negative classes. Combining the ROC-AUC and the NPV metrics would give us a better benchmark to select a good model.
+Since both models had 100% specificity (meaning all the negative classes they predicted were accurate), we can rely on another metric to compare their performances. 
+In this case, we use the ROC-AUC. 
+The Ersilia Compound Embeddings model had a higher ROC-AUC, ant this supports my choice of it as the better model.
