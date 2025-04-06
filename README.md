@@ -96,7 +96,7 @@ I did this to make sure that each dataset can be identified easily and that the 
 - Conda
 - Jupyter Lab (optional)
 - WSL (optional)
-- Docker (optional)
+- Docker
 
 ### Loading Instructions
 #### 1. Create Conda Environment
