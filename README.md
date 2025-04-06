@@ -292,7 +292,7 @@ Similarly, I the same figures I created for the ErG 2D model; a [confusion matri
 
 To decide which model is better, I used a trade-off of which poses more risk "misclassifying a drug as hERG blocker or misclassifying a drug as not" i.e. False Positive vs False Negative
 - False Negative (misclassifying a hERG blocker as not a blocker): To the best of my knowledge, this is more dangerous. A drug that is a hERG blocker could cause serious heart issues, and misclassifying it as not can cause serious health issues.
-False Positive (misclassifying a non-hERG blocker as a blocker): This is a serious error too but I think the error is less risky. The worse that could happen here could be delaying the approval of the drug before it is considered safe, but it doesn’t pose a direct health risk.
+- False Positive (misclassifying a non-hERG blocker as a blocker): This is a serious error too but I think the error is less risky. The worse that could happen here could be delaying the approval of the drug before it is considered safe, but it doesn’t pose a direct health risk.
 
 Now using this as a benchmark, I can now compare the two models:
 ErG 2D Description model has high NPV (87.50%), meaning that the model gets 87.50% of the no blockage classifications correctly which is quite good, but it has low specificity (18.42%), meaning that the model only gets 18.42% of actual non-hERG blockers. 
