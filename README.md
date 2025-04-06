@@ -258,6 +258,8 @@ This is because I think we stand a chance of making sure that similar molecules 
 | F1-Score       | 89.97%  | 83.33%       | 86.32%  |
 | ROC AUC        | 95.40%  | 79.57%       | 82.24%  |
 
+This model is saved as a pickle file [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/models/best_eos5guo_model.pkl)
+
 I created a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20ErG%202D%20Descriptors.png) to analyze label classifications, a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20ErG%202D%20Descriptors.png) which shows the trade-off between precision and recall. But the precision-recall curve is not my focus because this graph is more relevant when we need to identify more positive cases (blockers).
 In this case, we need to correctly classify more negative classes (non blockers) due to the class imbalance, so I used a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20ErG%202D%20Descriptors.png) to assess classification quality, combined with the confusion matrix.
 The ROC-AUC curve shows the model is 82.24% confident in its prediction but we can't look away from the sensitivity and negative class prediction rate from the confusion matrix.
@@ -273,7 +275,7 @@ If we can get the descriptive feature names, the feature importance visual would
 
 ### Comparison with other Featuriser
 Another featuriser I tried is the Ersilia Compound Embeddings. According to the description of this featuriser, it generates bioactivity-aware chemical embeddings, combining physicochemical and bioactivity information; So I thought of giving it a try.
-At first, I got this as the best metric 
+At first, I got this as the best metric
 
 | Metric          | Train  | Validation   | Test    |
 |----------------|---------|--------------|---------|
@@ -282,6 +284,8 @@ At first, I got this as the best metric
 | Recall           | 100.0%              | 78.57%            | 81.37%             |
 | F1_Score        | 100.0%              | 81.48%           | 83.42%             |
 | ROC_AUC         | 100.0%              | 82.67%            | 82.56%             |
+
+This model is saved as a pickle file [here](https://github.com/GentRoyal/outreachy-contributions/blob/main/models/best_eos2gw4_model.pkl)
 
 The model clearly overfits the train set because of its perfect rating on the train set but overall, the model generalize moderately well and it struggles with unseen data because some of the metrics keeps decreasing.
 Similarly, I the same figures I created for the ErG 2D model; a [confusion matrix](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Confusion%20Matrix%20-%20Ersilia%20Compound%20Embeddings.png), a [precision-recall curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Precision-Recall%20Curve%20-%20Ersilia%20Compound%20Embeddings.png), a [ROC-AUC curve](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/ROC%20Curve%20-%20Ersilia%20Compound%20Embeddings.png) and a [top 10 feature importance visual](https://github.com/GentRoyal/outreachy-contributions/blob/main/data/figures/Top%2010%20Feature%20Importances%20-%20Ersilia%20Compound%20Embeddings.png) to highlight key predictors.
